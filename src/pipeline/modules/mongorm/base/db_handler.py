@@ -1,6 +1,7 @@
 from mongorm.core.datainterface import DataInterface
 from requests import get
 import mongoengine as me
+import pymongo
 import os
 
 
@@ -29,3 +30,10 @@ class DbHandler(object):
 
     def getDataInterface(self, dataInterface):
         return self.__getitem__(dataInterface)
+
+    def toMongoClient(self, host=None, port=None):
+        if not host:
+            host = self._HOST
+        if not port:
+            port = self._PORT
+        return pymongo.MongoClient(host=host, port=port)

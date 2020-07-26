@@ -1,0 +1,4 @@
+set MONGO_DATABASE=
+set MONGO_PORT=
+set MONGO_EXT_IP=
+set MONGO_INT_IP=

@@ -10,7 +10,9 @@ DATA_OBJECT_MAP = {
     'package': interfaces.Package,
     'version': interfaces.Version,
     'content': interfaces.Content,
-    'dependency': interfaces.Dependency
+    'dependency': interfaces.Dependency,
+    'user': interfaces.User,
+    'notification': interfaces.Notification
 }
 
 
@@ -21,7 +23,7 @@ class DataInterface(object):
     def __init__(self, db_name):
         self._db_name = db_name
         self._object_prototype = DATA_OBJECT_MAP[db_name]
-        self._name = db_name.replace(db_name[0], db_name[0].upper())
+        self._name = self._object_prototype._name
         self._cacheSizeLimit = 100000
 
     def __repr__(self):
@@ -43,6 +45,9 @@ class DataInterface(object):
         """Implied that there is only one result. Will return that object."""
 
         objects = self.all(dataFilter)
+
+        if not objects.hasObjects():
+            return None
 
         try:
             assert len(objects) == 1
@@ -69,7 +74,10 @@ class DataInterface(object):
 
     def get(self, uuid):
         """Get Data object that matches uuid value of this DataInterface type"""
-        return
+        import mongorm
+        df = mongorm.getFilter()
+        df.search(self, uuid=uuid)
+        return self.one(df)
 
     def name(self):
         return self._name

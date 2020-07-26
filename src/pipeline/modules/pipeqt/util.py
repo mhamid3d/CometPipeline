@@ -27,6 +27,10 @@ def v_line():
     return frame
 
 
+def get_settings():
+    return QtCore.QSettings("Comet Pipeline", "ProjectBrowser")
+
+
 class FlowLayout(QtWidgets.QLayout):
     def __init__(self, parent=None, margin=0, spacing=-1):
         super(FlowLayout, self).__init__(parent)

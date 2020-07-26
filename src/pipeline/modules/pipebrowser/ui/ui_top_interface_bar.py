@@ -1,10 +1,12 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
 from pipeqt import util as pqtutil
-from pipeqt.widgets.ui_notification_menu import NotificationMenu
-from pipeqt.widgets.ui_user_menu import UserButtonMenu
+from pipeqt.widgets.ui_notification_menu import NotificationButton
+from pipeqt.widgets.ui_user_avatar import AvatarLabel
+from pipeqt.widgets.ui_user_menu import UserMenu
 from collections import OrderedDict
 import mongorm
+
 
 FLAT_BUTTON_STYLE = """
     QPushButton{
@@ -45,7 +47,7 @@ TABBED_BUTTON_STYLE = """
 PROJECT_COMBO_STYLE = """
     QComboBox{
         margin: 2px;
-        border: 1px solid #4e4e4e;
+        border: none;
         border-radius: 1px;
         font: bold 20px;
     }
@@ -60,41 +62,90 @@ PROJECT_COMBO_STYLE = """
 """
 
 
-class TopInterfaceBar(QtWidgets.QWidget):
-    def __init__(self):
+class UserIconButton(AvatarLabel):
+    def __init__(self, userObject=None, size=32):
+        self.userObject = userObject
+        super(UserIconButton, self).__init__(size=size, data=QtCore.QByteArray(self.userObject.avatar.read()))
+        self.userObject.avatar.seek(0)
+        self.setCursor(QtCore.Qt.PointingHandCursor)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenu)
+
+    def mousePressEvent(self, event):
+        super(UserIconButton, self).mousePressEvent(event)
+        if event.button() == QtCore.Qt.LeftButton:
+            self.customContextMenuRequested.emit(event.pos())
+
+    def contextMenu(self, event):
+        self._menu = UserMenu(userObject=self.userObject, parent=self)
+        self._menu.setFixedWidth(300)
+        globalPoint = self.mapToGlobal(self.rect().bottomRight())
+        globalPoint.setX(globalPoint.x() - self._menu.width())
+        globalPoint.setY(globalPoint.y() + 5)
+        self.main_action = self._menu.exec_(globalPoint)
+
+
+class TopInterfaceBar(QtWidgets.QFrame):
+    def __init__(self, userObject=None):
         super(TopInterfaceBar, self).__init__()
         self._typeSelection = 0
         self.mainLayout = QtWidgets.QHBoxLayout()
         self.setLayout(self.mainLayout)
-        self.setFixedHeight(42)
-        self.mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.setFixedHeight(46)
+        self.mainLayout.setContentsMargins(9, 0, 9, 0)
+
+        self.userObject = userObject
 
         self.projectSelector = QtWidgets.QComboBox()
         self.settingsButton = QtWidgets.QPushButton()
         self.typeButtonGroup = QtWidgets.QButtonGroup()
         self.typeLayout = QtWidgets.QHBoxLayout()
 
-        self.setStyleSheet("QWidget{border-bottom: 2px solid #1e1e1e; border-top: 2px solid #1e1e1e;}")
+        self.setStyleSheet("border-bottom: 2px solid #1e1e1e; border-top: 2px solid #1e1e1e;")
 
         self.typeLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.cometButton = QtWidgets.QPushButton()
+        self.cometButton.setFixedSize(42, 42)
+        self.cometButton.setIcon(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
+        self.cometButton.setIconSize(QtCore.QSize(32, 32))
+        self.cometButton.setStyleSheet("""
+            QPushButton{
+                background: none;
+                border: none;
+            }
+            QPushButton:hover{
+                background: none;
+                border: none;
+            }
+            QPushButton:pressed{
+                background: none;
+                border: none;
+            }
+        """)
 
         self.projectSelector.setStyleSheet(PROJECT_COMBO_STYLE)
         self.projectSelector.setIconSize(QtCore.QSize(28, 28))
 
+        self.mainLayout.addWidget(self.cometButton, alignment=QtCore.Qt.AlignLeft)
         self.mainLayout.addWidget(self.projectSelector, alignment=QtCore.Qt.AlignLeft)
+        self.h_spacer1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.mainLayout.addItem(self.h_spacer1)
         self.mainLayout.addLayout(self.typeLayout)
+        self.h_spacer2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.mainLayout.addItem(self.h_spacer2)
 
-        self.userButtonMenu = UserButtonMenu()
-        self.notificationsMenu = NotificationMenu()
+        self.userIconMenu = UserIconButton(userObject=self.userObject, size=30)
+        self.notificationButton = NotificationButton(userObject=self.userObject)
 
-        self.mainLayout.addWidget(self.userButtonMenu)
-        self.mainLayout.addWidget(self.notificationsMenu)
+        self.mainLayout.addWidget(self.notificationButton)
+        self.mainLayout.addWidget(self.userIconMenu)
 
-        self.setup_top_menu()
+        self.setup_page_buttons()
 
         self.fetch_jobs()
 
-    def setup_top_menu(self):
+    def setup_page_buttons(self):
 
         self.assetsButton = QtWidgets.QToolButton()
         self.assetsButton.setText("Assets")
@@ -144,7 +195,7 @@ class TopInterfaceBar(QtWidgets.QWidget):
         self.settingsButton = QtWidgets.QToolButton()
         self.settingsButton.setText("Settings")
         self.settingsButton.setFixedSize(100, 42)
-        self.settingsButton.setIcon(QtGui.QIcon(icon_paths.ICON_SETTINGS_LRG))
+        self.settingsButton.setIcon(QtGui.QIcon(icon_paths.ICON_COG_LRG))
         self.settingsButton.setCheckable(True)
         self.settingsButton.setIconSize(QtCore.QSize(18, 18))
         self.settingsButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
@@ -170,12 +221,6 @@ class TopInterfaceBar(QtWidgets.QWidget):
         v_line.setStyleSheet("QFrame{background: #3e3e3e; border: 0px;}")
         v_line.setFixedHeight(34)
         return v_line
-
-    def paintEvent(self, event):
-        opt = QtWidgets.QStyleOption()
-        opt.init(self)
-        painter = QtGui.QPainter(self)
-        self.style().drawPrimitive(QtWidgets.QStyle.PE_Widget, opt, painter, self)
 
     def fetch_jobs(self):
         self.projectSelector.clear()

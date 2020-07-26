@@ -1,6 +1,6 @@
+from pipebrowser.ui.ui_abstract_view import AbstractView, AbstractTreeItem
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
-from pipebrowser.ui.ui_abstract_view import AbstractView, AbstractTreeItem
 import mongorm
 import logging
 
@@ -70,7 +70,6 @@ class AssetViewer(AbstractView):
     def populate_assets(self):
         self.filter.search(self.handler['entity'], type='asset', job=self.parent_main.currentJob.get("label"))
         self.items = self.handler['entity'].all(self.filter)
-        print self.parent_main.currentJob.get("label")
 
         job_root_item = AbstractTreeItem(parent_main=self.parent_main, dataObject=self.parent_main.currentJob,
                                          treeParent=self.tree)

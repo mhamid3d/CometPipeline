@@ -18,6 +18,12 @@
     <file>ICON_CLOCK_LRG.png</file>
     <file>ICON_CLOCK_MED.png</file>
     <file>ICON_CLOCK_SML.png</file>
+    <file>ICON_COG_LRG.png</file>
+    <file>ICON_COG_MED.png</file>
+    <file>ICON_COG_SML.png</file>
+    <file>ICON_COMETPIPE_LRG.png</file>
+    <file>ICON_COMETPIPE_MED.png</file>
+    <file>ICON_COMETPIPE_SML.png</file>
     <file>ICON_COMMENT_LRG.png</file>
     <file>ICON_COMMENT_MED.png</file>
     <file>ICON_COMMENT_SML.png</file>
@@ -54,6 +60,7 @@
     <file>ICON_PACKAGE_LRG.png</file>
     <file>ICON_PACKAGE_MED.png</file>
     <file>ICON_PACKAGE_SML.png</file>
+    <file>ICON_PIPE.svg</file>
     <file>ICON_PLUS_LRG.png</file>
     <file>ICON_PLUS_MED.png</file>
     <file>ICON_PLUS_SML.png</file>
@@ -75,18 +82,27 @@
     <file>ICON_SHOT_LRG.png</file>
     <file>ICON_SHOT_MED.png</file>
     <file>ICON_SHOT_SML.png</file>
+    <file>ICON_SIGNOUT_LRG.png</file>
+    <file>ICON_SIGNOUT_MED.png</file>
+    <file>ICON_SIGNOUT_SML.png</file>
     <file>ICON_SLIDERS_LRG.png</file>
     <file>ICON_SLIDERS_MED.png</file>
     <file>ICON_SLIDERS_SML.png</file>
     <file>ICON_SYNC_LRG.png</file>
     <file>ICON_SYNC_MED.png</file>
     <file>ICON_SYNC_SML.png</file>
+    <file>ICON_TRASH_LRG.png</file>
+    <file>ICON_TRASH_MED.png</file>
+    <file>ICON_TRASH_SML.png</file>
     <file>ICON_USER_LRG.png</file>
     <file>ICON_USER_MED.png</file>
     <file>ICON_USER_SML.png</file>
     <file>ICON_VERSION_LRG.png</file>
     <file>ICON_VERSION_MED.png</file>
     <file>ICON_VERSION_SML.png</file>
+    <file>ICON_VMENU_LRG.png</file>
+    <file>ICON_VMENU_MED.png</file>
+    <file>ICON_VMENU_SML.png</file>
     <file>ICON_XRED_LRG.png</file>
     <file>ICON_XRED_MED.png</file>
     <file>ICON_XRED_SML.png</file>

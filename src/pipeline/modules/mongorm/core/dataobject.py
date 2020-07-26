@@ -5,42 +5,32 @@ import uuid
 import re
 
 
-class BaseJinxObject(object):
-    """
-    Site base class schema for MongoDB engine.
-    """
+class AbstractDataObject(object):
 
     INTERFACE_STRING = ""
+    DEFAULT_SORT = "created"
 
     _id = mongoengine.UUIDField(required=True, primary_key=True, visible=False, dispName="_ID")
     uuid = mongoengine.StringField(required=True, dispName="UUID", visible=True, icon=icon_paths.ICON_FINGERPRINT_SML)
-    path = mongoengine.StringField(required=True, dispName="Path", icon=icon_paths.ICON_LOCATION_SML)
-    label = mongoengine.StringField(required=True, dispName="Name")
     created = mongoengine.DateTimeField(required=True, dispName="Created", icon=icon_paths.ICON_CLOCK_SML)
-    job = mongoengine.StringField(required=True, dispName="Job", visible=False)
-    created_by = mongoengine.StringField(required=True, dispName="Owner", icon=icon_paths.ICON_USER_SML)
     modified = mongoengine.DateTimeField(required=True, dispName="Modified", icon=icon_paths.ICON_CLOCK_SML)
     deleted = mongoengine.BooleanField(required=True, dispName="Deleted", default=False, visible=False)
     archived = mongoengine.BooleanField(required=True, dispName="Archived", default=False, visible=False)
 
     def __init__(self, *args, **kwargs):
-        super(BaseJinxObject, self).__init__(*args, **kwargs)
+        super(AbstractDataObject, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        reprstring = object.__repr__(self)
-        reprstring = re.sub("object", "object [{}]".format(self.label), reprstring)
-        reprstring = reprstring.replace("mongorm.interfaces.", "")
-
-        return reprstring
-
-    def interfaceName(self):
-        return self.dataInterface().name()
+        return "Abstract Data Object ({})".format(self.uuid)
 
     def __str__(self):
-        return "{} object [{}]".format(self.interfaceName(), self.label)
+        return self.uuid
 
     def get(self, item):
         return self.getDataDict().get(item)
+
+    def interfaceName(self):
+        return self.dataInterface().name()
 
     def _generate_id(self):
         """
@@ -72,8 +62,36 @@ class BaseJinxObject(object):
     def getUuid(self):
         return self.uuid
 
-    def getDataType(self, field):
-        return self.getField(field).dataType()
+    def pprint(self):
+        import pprint
+        pprint.pprint(self.getDataDict())
+
+
+class DataObject(AbstractDataObject):
+    """
+    Site base class schema for MongoDB engine.
+    """
+
+    INTERFACE_STRING = ""
+    DEFAULT_SORT = "label"
+
+    path = mongoengine.StringField(required=True, dispName="Path", icon=icon_paths.ICON_LOCATION_SML)
+    label = mongoengine.StringField(required=True, dispName="Name")
+    job = mongoengine.StringField(required=True, dispName="Job", visible=False)
+    created_by = mongoengine.StringField(required=True, dispName="Owner", icon=icon_paths.ICON_USER_SML)
+
+    def __init__(self, *args, **kwargs):
+        super(DataObject, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        reprstring = object.__repr__(self)
+        reprstring = re.sub("object", "object [{}]".format(self.label), reprstring)
+        reprstring = reprstring.replace("mongorm.interfaces.", "")
+
+        return reprstring
+
+    def __str__(self):
+        return "{} object [{}]".format(self.interfaceName(), self.label)
 
     def children(self):
         raise NotImplementedError
@@ -98,7 +116,3 @@ class BaseJinxObject(object):
 
     def siblings(self):
         raise NotImplementedError
-
-    def pprint(self):
-        import pprint
-        pprint.pprint(self.getDataDict())

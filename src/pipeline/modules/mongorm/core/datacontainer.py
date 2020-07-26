@@ -1,4 +1,4 @@
-from mongorm.core.dataobject import BaseJinxObject
+from mongorm.core.dataobject import DataObject, AbstractDataObject
 
 
 class DataContainer(object):
@@ -8,11 +8,11 @@ class DataContainer(object):
         if querySet:
             for object in querySet:
                 self.append_object(object)
-            self.sort("label")
+            self.sort(interface.objectPrototype.DEFAULT_SORT)
 
     def append_object(self, object):
 
-        assert isinstance(object, BaseJinxObject), "Object must be DataObject instance"
+        assert isinstance(object, AbstractDataObject), "Object must be DataObject instance"
 
         if not object.interfaceName() == self._interface.name():
             raise TypeError("Data Object of type ({}) does not match with DataContainer type ({})".format(
@@ -42,7 +42,7 @@ class DataContainer(object):
         return self._objects[item]
 
     def get(self, object):
-        assert isinstance(object, BaseJinxObject), "Object must be DataObject instance"
+        assert isinstance(object, DataObject), "Object must be DataObject instance"
 
         for obj in self._objects:
             if object.getUuid() == obj.getUuid():

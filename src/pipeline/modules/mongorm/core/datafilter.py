@@ -1,6 +1,4 @@
-"""
-DataFilter base class
-"""
+from mongorm.core.datainterface import DataInterface
 
 
 class DataFilter(object):
@@ -35,8 +33,13 @@ class DataFilter(object):
     def setInterface(self, interface):
         self._interface = interface
 
+    def clear(self):
+        self._filterStrings = {}
+
     def search(self, *args, **kwargs):
         datainterface = args[0]
+
+        assert isinstance(datainterface, DataInterface), "First argument must be a DataInterface"
 
         if not self.interface() or not self.interface().name() == datainterface.name():
             self.setInterface(datainterface)
@@ -44,6 +47,11 @@ class DataFilter(object):
 
         for k, v in kwargs.items():
             self._filterStrings[k] = v
+
+        if self._omitDeleted:
+            self._filterStrings['deleted'] = False
+        if self._omitArchived:
+            self._filterStrings['archived'] = False
 
         return True
 

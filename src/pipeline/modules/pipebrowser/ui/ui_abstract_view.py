@@ -14,7 +14,7 @@ class AbstractTreeItem(QtWidgets.QTreeWidgetItem):
         self.setIcon(0, QtGui.QIcon(self.dataObject.get("thumbnail")))
 
 
-class AbstractView(QtWidgets.QWidget):
+class AbstractView(QtWidgets.QFrame):
 
     SEARCH_HEIGHT = 38
 

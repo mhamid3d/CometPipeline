@@ -1,10 +1,11 @@
-from mongorm.core.dataobject import BaseJinxObject
+from mongorm.core.dataobject import DataObject, AbstractDataObject
 from pipeicon import icon_paths
 import mongorm
 import mongoengine
+import re
 
 
-class Job(BaseJinxObject, mongoengine.Document):
+class Job(DataObject, mongoengine.Document):
 
     _name = "Job"
     meta = {'collection': 'job'}
@@ -74,7 +75,7 @@ class Job(BaseJinxObject, mongoengine.Document):
             return None
 
 
-class Entity(BaseJinxObject, mongoengine.Document):
+class Entity(DataObject, mongoengine.Document):
 
     _name = "Entity"
     meta = {'collection': 'entity'}
@@ -129,7 +130,7 @@ class Entity(BaseJinxObject, mongoengine.Document):
             return None
 
 
-class Package(BaseJinxObject, mongoengine.Document):
+class Package(DataObject, mongoengine.Document):
 
     _name = "Package"
     meta = {'collection': 'package'}
@@ -190,7 +191,7 @@ class Package(BaseJinxObject, mongoengine.Document):
             return None
 
 
-class Version(BaseJinxObject, mongoengine.Document):
+class Version(DataObject, mongoengine.Document):
 
     _name = 'Version'
     meta = {'collection': 'version'}
@@ -242,7 +243,7 @@ class Version(BaseJinxObject, mongoengine.Document):
             return None
 
 
-class Content(BaseJinxObject, mongoengine.Document):
+class Content(DataObject, mongoengine.Document):
 
     _name = 'content'
     meta = {'collection': 'content'}
@@ -285,7 +286,7 @@ class Content(BaseJinxObject, mongoengine.Document):
             return None
 
 
-class Dependency(BaseJinxObject, mongoengine.Document):
+class Dependency(DataObject, mongoengine.Document):
 
     _name = 'Dependency'
     meta = {'collection': 'dependency'}
@@ -311,3 +312,53 @@ class Dependency(BaseJinxObject, mongoengine.Document):
                 return siblings
         else:
             return None
+
+
+class User(AbstractDataObject, mongoengine.Document):
+
+    _name = "User"
+    meta = {'collection': 'user'}
+    INTERFACE_STRING = "user"
+    DEFAULT_SORT = "first_name"
+
+    # Required fields
+    first_name = mongoengine.StringField(required=True)
+    last_name = mongoengine.StringField(required=True)
+    email = mongoengine.EmailField(required=True)
+    password = mongoengine.StringField(required=True)
+    username = mongoengine.StringField(required=True)
+    avatar = mongoengine.ImageField(required=True, size=(128, 128, True))
+    jobs = mongoengine.ListField(required=True, default=['LIBRARY'])
+
+    def __repr__(self):
+        reprstring = object.__repr__(self)
+        reprstring = re.sub("object", "object [{}]".format(self.username), reprstring)
+        reprstring = reprstring.replace("mongorm.interfaces.", "")
+
+        return reprstring
+
+    def __str__(self):
+        return "{} object [{}]".format(self.interfaceName(), self.username)
+
+
+class Notification(AbstractDataObject, mongoengine.Document):
+
+    _name = "Notification"
+    meta = {'collection': 'notification'}
+    INTERFACE_STRING = "notification"
+
+    # Required fields
+    receiver_uuid = mongoengine.StringField(required=True)
+    description = mongoengine.StringField(required=True)
+    read = mongoengine.BooleanField(required=True, default=False)
+    viewed = mongoengine.BooleanField(required=True, default=False)
+
+    def __repr__(self):
+        reprstring = object.__repr__(self)
+        reprstring = re.sub("object", "object [{}]".format(self.description), reprstring)
+        reprstring = reprstring.replace("mongorm.interfaces.", "")
+
+        return reprstring
+
+    def __str__(self):
+        return "{} object [{}]".format(self.interfaceName(), self.description)
