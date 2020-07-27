@@ -1,7 +1,7 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from pipebrowser.ui.ui_login_form import UiLoginForm
-from pipebrowser.ui.ui_register_form import UiRegisterForm
-from pipebrowser.project_browser import ProjectBrowserMain
+from cometbrowser.ui.ui_login_form import UiLoginForm
+from cometbrowser.ui.ui_register_form import UiRegisterForm
+from cometbrowser.browser import ProjectBrowserMain
 from pipeicon import icon_paths
 import qdarkstyle
 

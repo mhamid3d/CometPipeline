@@ -1,7 +1,7 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
-from pipeqt.widgets.ui_user_avatar import AvatarLabel
-from pipeqt import util as pqtutil
+from cometqt.widgets.ui_user_avatar import AvatarLabel
+from cometqt import util as pqtutil
 
 
 class UserMenuAction(QtWidgets.QFrame):

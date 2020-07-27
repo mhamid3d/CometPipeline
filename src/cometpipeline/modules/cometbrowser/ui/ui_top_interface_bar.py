@@ -1,9 +1,10 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
-from pipeqt import util as pqtutil
-from pipeqt.widgets.ui_notification_menu import NotificationButton
-from pipeqt.widgets.ui_user_avatar import AvatarLabel
-from pipeqt.widgets.ui_user_menu import UserMenu
+from cometqt import util as pqtutil
+from cometqt.widgets.ui_notification_menu import NotificationButton
+from cometqt.widgets.ui_user_avatar import AvatarLabel
+from cometqt.widgets.ui_user_menu import UserMenu
+from cometqt.widgets.ui_comet_menu import CometMenuButton
 from collections import OrderedDict
 import mongorm
 
@@ -92,43 +93,21 @@ class TopInterfaceBar(QtWidgets.QFrame):
         self.mainLayout = QtWidgets.QHBoxLayout()
         self.setLayout(self.mainLayout)
         self.setFixedHeight(46)
-        self.mainLayout.setContentsMargins(9, 0, 9, 0)
+        self.mainLayout.setContentsMargins(0, 0, 9, 0)
 
         self.userObject = userObject
 
-        self.projectSelector = QtWidgets.QComboBox()
         self.settingsButton = QtWidgets.QPushButton()
         self.typeButtonGroup = QtWidgets.QButtonGroup()
         self.typeLayout = QtWidgets.QHBoxLayout()
 
-        self.setStyleSheet("border-bottom: 2px solid #1e1e1e; border-top: 2px solid #1e1e1e;")
+        self.setStyleSheet("border-bottom: 1px solid #1e1e1e; border-top: 1px solid #1e1e1e;")
 
         self.typeLayout.setContentsMargins(0, 0, 0, 0)
 
-        self.cometButton = QtWidgets.QPushButton()
-        self.cometButton.setFixedSize(42, 42)
-        self.cometButton.setIcon(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
-        self.cometButton.setIconSize(QtCore.QSize(32, 32))
-        self.cometButton.setStyleSheet("""
-            QPushButton{
-                background: none;
-                border: none;
-            }
-            QPushButton:hover{
-                background: none;
-                border: none;
-            }
-            QPushButton:pressed{
-                background: none;
-                border: none;
-            }
-        """)
-
-        self.projectSelector.setStyleSheet(PROJECT_COMBO_STYLE)
-        self.projectSelector.setIconSize(QtCore.QSize(28, 28))
+        self.cometButton = CometMenuButton(parent=self)
 
         self.mainLayout.addWidget(self.cometButton, alignment=QtCore.Qt.AlignLeft)
-        self.mainLayout.addWidget(self.projectSelector, alignment=QtCore.Qt.AlignLeft)
         self.h_spacer1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.mainLayout.addItem(self.h_spacer1)
         self.mainLayout.addLayout(self.typeLayout)
@@ -223,18 +202,7 @@ class TopInterfaceBar(QtWidgets.QFrame):
         return v_line
 
     def fetch_jobs(self):
-        self.projectSelector.clear()
-        self.projectSelector.projects = OrderedDict()
-
-        dh = mongorm.getHandler()
-        df = mongorm.getFilter()
-        df.search(dh['job'])
-
-        jobs = dh['job'].all(df)
-
-        for idx, job in enumerate(jobs):
-            self.projectSelector.addItem(QtGui.QIcon(job.thumbnail), job.label)
-            self.projectSelector.projects[idx] = job
+        pass
 
 
 if __name__ == '__main__':

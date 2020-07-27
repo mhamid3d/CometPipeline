@@ -1,5 +1,5 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from pipeqt import util as pqtutil
+from cometqt import util as pqtutil
 from pipeicon import icon_paths
 import datetime
 import timeago
@@ -323,6 +323,10 @@ class NotificationMenu(QtWidgets.QMenu):
             line = pqtutil.h_line()
             line.setFixedHeight(1)
             self.notificationsLayout.addWidget(line)
+
+            notification.viewed = True
+            notification.modified = datetime.datetime.now()
+            notification.save()
 
 
 class NotificationButton(QtWidgets.QPushButton):

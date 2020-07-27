@@ -28,7 +28,17 @@ def v_line():
 
 
 def get_settings():
-    return QtCore.QSettings("Comet Pipeline", "ProjectBrowser")
+    return QtCore.QSettings("Comet Pipeline", "Comet Browser")
+
+
+def get_top_window(fromObject, topClass):
+    w = fromObject.parent()
+    while w.parent():
+        w = w.parent()
+
+    assert isinstance(w, topClass), "Could not find valid top window of instance {}. Got {} instead".format(str(topClass), str(w))
+
+    return w
 
 
 class FlowLayout(QtWidgets.QLayout):

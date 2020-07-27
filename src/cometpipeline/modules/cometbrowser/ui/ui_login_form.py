@@ -1,6 +1,6 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from pipeqt import util as pqtutil
-from pipeqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
+from cometqt import util as pqtutil
+from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 import mongorm
 import bcrypt
 

@@ -1,8 +1,8 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from pipeqt.widgets.ui_user_avatar import AvatarLabel
-from pipeqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
+from cometqt.widgets.ui_user_avatar import AvatarLabel
+from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 from pipeicon import icon_paths
-from pipeqt import util
+from cometqt import util
 import mongorm
 import datetime
 import bcrypt
@@ -27,7 +27,7 @@ class ValidationLineEdit(QtWidgets.QLineEdit):
             }
         """)
         self.setPlaceholderText(type)
-        self.icon = QtGui.QIcon(icon_paths.ICON_CHECKGREEN_SML)
+        self.icon = QtGui.QIcon(icon_paths.ICON_CHECKGREEN_BORDERLESS_LRG)
         self.type = type
         self.isValid = False
         self.textChanged.connect(self.handleTextChange)
@@ -317,8 +317,9 @@ class UserCard(QtWidgets.QWidget):
         self.dataObject = dataObject
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.setLayout(self.mainLayout)
-
-        self.avatar = AvatarLabel(size=100, data=QtCore.QByteArray.fromRawData(self.dataObject.avatar.read()))
+        self.dataObject.avatar.seek(0)
+        self.avatar = AvatarLabel(size=100, data=QtCore.QByteArray(self.dataObject.avatar.read()))
+        self.dataObject.avatar.seek(0)
         self.nameLabel = QtWidgets.QLabel(self.dataObject.get("first_name") + " " + self.dataObject.get("last_name"))
         self.email_label = QtWidgets.QLabel(self.dataObject.get("email"))
         self.username_label = QtWidgets.QLabel("Username: " + self.dataObject.get("username"))

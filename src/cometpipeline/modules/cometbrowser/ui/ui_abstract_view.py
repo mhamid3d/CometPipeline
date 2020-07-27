@@ -1,7 +1,7 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
-from pipeqt.widgets.ui_search_bar import UiSearchBar
-from pipeqt import util as pqtutil
+from cometqt.widgets.ui_search_bar import UiSearchBar
+from cometqt import util as pqtutil
 import mongorm
 
 

@@ -1,7 +1,7 @@
 from qtpy import QtWidgets, QtGui
-from pipebrowser.ui.ui_login_window import UiLoginWindow
-from pipebrowser.project_browser import ProjectBrowserMain
-from pipeqt import util as pqtutil
+from cometbrowser.ui.ui_login_window import UiLoginWindow
+from cometbrowser.browser import ProjectBrowserMain
+from cometqt import util as pqtutil
 import qdarkstyle
 
 

@@ -1,8 +1,8 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from pipebrowser.ui.ui_top_interface_bar import TopInterfaceBar
-from pipebrowser.ui.ui_asset_viewer import AssetViewer
-from pipeqt.widgets.ui_base_main_window import BaseMainWindow
-from pipeqt import util as pqtutil
+from cometbrowser.ui.ui_top_interface_bar import TopInterfaceBar
+from cometbrowser.ui.ui_asset_viewer import AssetViewer
+from cometqt.widgets.ui_base_main_window import BaseMainWindow
+from cometqt import util as pqtutil
 import mongorm
 
 
@@ -37,7 +37,7 @@ class ProjectBrowserMain(BaseMainWindow):
     def __init__(self, userObject, bootstrap=None):
         self.userObject = userObject
         super(ProjectBrowserMain, self).__init__()
-        self.setWindowTitle("Project Browser")
+        self.setWindowTitle("Comet Browser")
         self.settings = pqtutil.get_settings()
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.resize(1500, 900)
@@ -67,11 +67,16 @@ class ProjectBrowserMain(BaseMainWindow):
         self.mainLayout.addWidget(self.stack_main)
 
     def handle_signals(self):
-        self.top_interface_bar.projectSelector.currentIndexChanged.connect(self.job_changed)
+        pass
+        # self.top_interface_bar.projectSelector.currentIndexChanged.connect(self.job_changed)
+
+    def doCloseBrowser(self):
+        self.close()
 
     def job_changed(self):
-        if not self.top_interface_bar.projectSelector.count():
-            return False
-        self._currentJob = self.top_interface_bar.projectSelector.projects[
-            self.top_interface_bar.projectSelector.currentIndex()]
-        self.asset_viewer.populate_assets()
+        pass
+        # if not self.top_interface_bar.projectSelector.count():
+        #     return False
+        # self._currentJob = self.top_interface_bar.projectSelector.projects[
+        #     self.top_interface_bar.projectSelector.currentIndex()]
+        # self.asset_viewer.populate_assets()

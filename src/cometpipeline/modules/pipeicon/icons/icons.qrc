@@ -3,6 +3,18 @@
     <file>ICON_ANALYTICS_LRG.png</file>
     <file>ICON_ANALYTICS_MED.png</file>
     <file>ICON_ANALYTICS_SML.png</file>
+    <file>ICON_ARROWDOWN_LRG.png</file>
+    <file>ICON_ARROWDOWN_MED.png</file>
+    <file>ICON_ARROWDOWN_SML.png</file>
+    <file>ICON_ARROWLEFT_LRG.png</file>
+    <file>ICON_ARROWLEFT_MED.png</file>
+    <file>ICON_ARROWLEFT_SML.png</file>
+    <file>ICON_ARROWRIGHT_LRG.png</file>
+    <file>ICON_ARROWRIGHT_MED.png</file>
+    <file>ICON_ARROWRIGHT_SML.png</file>
+    <file>ICON_ARROWUP_LRG.png</file>
+    <file>ICON_ARROWUP_MED.png</file>
+    <file>ICON_ARROWUP_SML.png</file>
     <file>ICON_ASSET_LRG.png</file>
     <file>ICON_ASSET_MED.png</file>
     <file>ICON_ASSET_SML.png</file>
@@ -12,6 +24,9 @@
     <file>ICON_BELL_LRG.png</file>
     <file>ICON_BELL_MED.png</file>
     <file>ICON_BELL_SML.png</file>
+    <file>ICON_CHECKGREEN_BORDERLESS_LRG.png</file>
+    <file>ICON_CHECKGREEN_BORDERLESS_MED.png</file>
+    <file>ICON_CHECKGREEN_BORDERLESS_SML.png</file>
     <file>ICON_CHECKGREEN_LRG.png</file>
     <file>ICON_CHECKGREEN_MED.png</file>
     <file>ICON_CHECKGREEN_SML.png</file>
@@ -27,6 +42,9 @@
     <file>ICON_COMMENT_LRG.png</file>
     <file>ICON_COMMENT_MED.png</file>
     <file>ICON_COMMENT_SML.png</file>
+    <file>ICON_DOOROPEN_LRG.png</file>
+    <file>ICON_DOOROPEN_MED.png</file>
+    <file>ICON_DOOROPEN_SML.png</file>
     <file>ICON_FILE_LRG.png</file>
     <file>ICON_FILE_MED.png</file>
     <file>ICON_FILE_SML.png</file>
@@ -64,6 +82,9 @@
     <file>ICON_PLUS_LRG.png</file>
     <file>ICON_PLUS_MED.png</file>
     <file>ICON_PLUS_SML.png</file>
+    <file>ICON_RELOADGREY_LRG.png</file>
+    <file>ICON_RELOADGREY_MED.png</file>
+    <file>ICON_RELOADGREY_SML.png</file>
     <file>ICON_RELOAD_LRG.png</file>
     <file>ICON_RELOAD_MED.png</file>
     <file>ICON_RELOAD_SML.png</file>

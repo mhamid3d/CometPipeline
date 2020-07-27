@@ -1,4 +1,4 @@
-from pipebrowser.ui.ui_abstract_view import AbstractView, AbstractTreeItem
+from cometbrowser.ui.ui_abstract_view import AbstractView, AbstractTreeItem
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
 import mongorm
