@@ -5,8 +5,6 @@ from cometqt.widgets.ui_notification_menu import NotificationButton
 from cometqt.widgets.ui_user_avatar import AvatarLabel
 from cometqt.widgets.ui_user_menu import UserMenu
 from cometqt.widgets.ui_comet_menu import CometMenuButton
-from collections import OrderedDict
-import mongorm
 
 
 FLAT_BUTTON_STYLE = """
@@ -87,8 +85,8 @@ class UserIconButton(AvatarLabel):
 
 
 class TopInterfaceBar(QtWidgets.QFrame):
-    def __init__(self, userObject=None):
-        super(TopInterfaceBar, self).__init__()
+    def __init__(self, userObject=None, parent=None):
+        super(TopInterfaceBar, self).__init__(parent=parent)
         self._typeSelection = 0
         self.mainLayout = QtWidgets.QHBoxLayout()
         self.setLayout(self.mainLayout)
@@ -126,23 +124,15 @@ class TopInterfaceBar(QtWidgets.QFrame):
 
     def setup_page_buttons(self):
 
-        self.assetsButton = QtWidgets.QToolButton()
-        self.assetsButton.setText("Assets")
-        self.assetsButton.setFixedSize(100, 42)
-        self.assetsButton.setIcon(QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
-        self.assetsButton.setCheckable(True)
-        self.assetsButton.setIconSize(QtCore.QSize(18, 18))
-        self.assetsButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
-        self.assetsButton.setStyleSheet(TABBED_BUTTON_STYLE)
-
         self.productionButton = QtWidgets.QToolButton()
         self.productionButton.setText("Production")
         self.productionButton.setFixedSize(100, 42)
-        self.productionButton.setIcon(QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
+        self.productionButton.setIcon(QtGui.QIcon(icon_paths.ICON_CAMERA_LRG))
         self.productionButton.setCheckable(True)
         self.productionButton.setIconSize(QtCore.QSize(18, 18))
         self.productionButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.productionButton.setStyleSheet(TABBED_BUTTON_STYLE)
+        self.productionButton.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.launchersButton = QtWidgets.QToolButton()
         self.launchersButton.setText("Launchers")
@@ -152,6 +142,7 @@ class TopInterfaceBar(QtWidgets.QFrame):
         self.launchersButton.setIconSize(QtCore.QSize(18, 18))
         self.launchersButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.launchersButton.setStyleSheet(TABBED_BUTTON_STYLE)
+        self.launchersButton.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.syncButton = QtWidgets.QToolButton()
         self.syncButton.setText("Sync")
@@ -161,6 +152,7 @@ class TopInterfaceBar(QtWidgets.QFrame):
         self.syncButton.setIconSize(QtCore.QSize(18, 18))
         self.syncButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.syncButton.setStyleSheet(TABBED_BUTTON_STYLE)
+        self.syncButton.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.analyticsButton = QtWidgets.QToolButton()
         self.analyticsButton.setText("Analytics")
@@ -170,6 +162,7 @@ class TopInterfaceBar(QtWidgets.QFrame):
         self.analyticsButton.setIconSize(QtCore.QSize(18, 18))
         self.analyticsButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.analyticsButton.setStyleSheet(TABBED_BUTTON_STYLE)
+        self.analyticsButton.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.settingsButton = QtWidgets.QToolButton()
         self.settingsButton.setText("Settings")
@@ -179,16 +172,15 @@ class TopInterfaceBar(QtWidgets.QFrame):
         self.settingsButton.setIconSize(QtCore.QSize(18, 18))
         self.settingsButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextUnderIcon)
         self.settingsButton.setStyleSheet(TABBED_BUTTON_STYLE)
+        self.settingsButton.setCursor(QtCore.Qt.PointingHandCursor)
 
-        self.typeButtonGroup.addButton(self.assetsButton, 0)
-        self.typeButtonGroup.addButton(self.productionButton, 1)
-        self.typeButtonGroup.addButton(self.launchersButton, 2)
-        self.typeButtonGroup.addButton(self.syncButton, 3)
-        self.typeButtonGroup.addButton(self.analyticsButton, 4)
-        self.typeButtonGroup.addButton(self.settingsButton, 5)
+        self.typeButtonGroup.addButton(self.productionButton, 0)
+        self.typeButtonGroup.addButton(self.launchersButton, 1)
+        self.typeButtonGroup.addButton(self.syncButton, 2)
+        self.typeButtonGroup.addButton(self.analyticsButton, 3)
+        self.typeButtonGroup.addButton(self.settingsButton, 4)
         self.typeButtonGroup.button(0).setChecked(True)
 
-        self.typeLayout.addWidget(self.assetsButton)
         self.typeLayout.addWidget(self.productionButton)
         self.typeLayout.addWidget(self.launchersButton)
         self.typeLayout.addWidget(self.syncButton)

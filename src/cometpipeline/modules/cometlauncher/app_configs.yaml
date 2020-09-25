@@ -1,0 +1,62 @@
+apps:
+
+  maya:
+    name: Maya
+    icon: ICON_MAYA_LRG
+    exec: C:\Program Files\Autodesk\Maya2020\bin\maya.exe
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {
+            PYTHONPATH: [C:\_dev\CometPipeline\src\cometpipeline\modules\cometmaya\scripts]
+    }
+
+
+  katana:
+    name: Katana
+    icon: ICON_KATANA_LRG
+    exec: C:\Program Files\Katana3.5v2\bin\katanaBin.exe
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {
+            QT_API: [pyqt5]
+    }
+
+  nuke:
+    name: Nuke
+    icon: ICON_NUKE_LRG
+    exec: C:\Program Files\Nuke11.3v6\Nuke11.3.exe --nukex
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {}
+
+  mari:
+    name: Mari
+    icon: ICON_MARI_LRG
+    exec: C:\Program Files\Mari4.6v3\Bundle\bin\Mari4.6v3.exe
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {}
+
+  substancePainter:
+    name: Substance Painter
+    icon: ICON_SUBSTANCEPAINTER_LRG
+    exec: None
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {}
+
+  substanceDesigner:
+    name: Substance Designer
+    icon: ICON_SUBSTANCEDESIGNER_LRG
+    exec: None
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {}
+
+  houdini:
+    name: Houdini
+    icon: ICON_HOUDINI_LRG
+    exec: None
+    include-base-dcc-libs: True
+    include-base-comet-libs: True
+    vars: {}

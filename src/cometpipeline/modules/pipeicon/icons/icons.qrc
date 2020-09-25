@@ -15,6 +15,9 @@
     <file>ICON_ARROWUP_LRG.png</file>
     <file>ICON_ARROWUP_MED.png</file>
     <file>ICON_ARROWUP_SML.png</file>
+    <file>ICON_ASSETGROUP_LRG.png</file>
+    <file>ICON_ASSETGROUP_MED.png</file>
+    <file>ICON_ASSETGROUP_SML.png</file>
     <file>ICON_ASSET_LRG.png</file>
     <file>ICON_ASSET_MED.png</file>
     <file>ICON_ASSET_SML.png</file>
@@ -24,6 +27,9 @@
     <file>ICON_BELL_LRG.png</file>
     <file>ICON_BELL_MED.png</file>
     <file>ICON_BELL_SML.png</file>
+    <file>ICON_CAMERA_LRG.png</file>
+    <file>ICON_CAMERA_MED.png</file>
+    <file>ICON_CAMERA_SML.png</file>
     <file>ICON_CHECKGREEN_BORDERLESS_LRG.png</file>
     <file>ICON_CHECKGREEN_BORDERLESS_MED.png</file>
     <file>ICON_CHECKGREEN_BORDERLESS_SML.png</file>
@@ -42,12 +48,22 @@
     <file>ICON_COMMENT_LRG.png</file>
     <file>ICON_COMMENT_MED.png</file>
     <file>ICON_COMMENT_SML.png</file>
+    <file>ICON_COPYUUID_LRG.png</file>
+    <file>ICON_COPYUUID_MED.png</file>
+    <file>ICON_COPYUUID_SML.png</file>
+    <file>ICON_COPY_LRG.png</file>
+    <file>ICON_COPY_MED.png</file>
+    <file>ICON_COPY_SML.png</file>
+    <file>ICON_CRAFT_LRG.png</file>
+    <file>ICON_CRAFT_MED.png</file>
+    <file>ICON_CRAFT_SML.png</file>
     <file>ICON_DOOROPEN_LRG.png</file>
     <file>ICON_DOOROPEN_MED.png</file>
     <file>ICON_DOOROPEN_SML.png</file>
     <file>ICON_FILE_LRG.png</file>
     <file>ICON_FILE_MED.png</file>
     <file>ICON_FILE_SML.png</file>
+    <file>ICON_FILMCLAPBOARD_LRG.png</file>
     <file>ICON_FILTER_LRG.png</file>
     <file>ICON_FILTER_MED.png</file>
     <file>ICON_FILTER_SML.png</file>
@@ -60,6 +76,7 @@
     <file>ICON_HOME_LRG.png</file>
     <file>ICON_HOME_MED.png</file>
     <file>ICON_HOME_SML.png</file>
+    <file>ICON_HOUDINI_LRG.png</file>
     <file>ICON_IMAGE_LRG.png</file>
     <file>ICON_IMAGE_MED.png</file>
     <file>ICON_IMAGE_SML.png</file>
@@ -69,12 +86,16 @@
     <file>ICON_JOB_LRG.png</file>
     <file>ICON_JOB_MED.png</file>
     <file>ICON_JOB_SML.png</file>
+    <file>ICON_KATANA_LRG.png</file>
     <file>ICON_LAUNCHER_LRG.png</file>
     <file>ICON_LAUNCHER_MED.png</file>
     <file>ICON_LAUNCHER_SML.png</file>
     <file>ICON_LOCATION_LRG.png</file>
     <file>ICON_LOCATION_MED.png</file>
     <file>ICON_LOCATION_SML.png</file>
+    <file>ICON_MARI_LRG.png</file>
+    <file>ICON_MAYA_LRG.png</file>
+    <file>ICON_NUKE_LRG.png</file>
     <file>ICON_PACKAGE_LRG.png</file>
     <file>ICON_PACKAGE_MED.png</file>
     <file>ICON_PACKAGE_SML.png</file>
@@ -88,6 +109,9 @@
     <file>ICON_RELOAD_LRG.png</file>
     <file>ICON_RELOAD_MED.png</file>
     <file>ICON_RELOAD_SML.png</file>
+    <file>ICON_RESOLUTION_LRG.png</file>
+    <file>ICON_RESOLUTION_MED.png</file>
+    <file>ICON_RESOLUTION_SML.png</file>
     <file>ICON_SCROLL_LRG.png</file>
     <file>ICON_SCROLL_MED.png</file>
     <file>ICON_SCROLL_SML.png</file>
@@ -109,9 +133,12 @@
     <file>ICON_SLIDERS_LRG.png</file>
     <file>ICON_SLIDERS_MED.png</file>
     <file>ICON_SLIDERS_SML.png</file>
+    <file>ICON_SUBSTANCEDESIGNER_LRG.png</file>
+    <file>ICON_SUBSTANCEPAINTER_LRG.png</file>
     <file>ICON_SYNC_LRG.png</file>
     <file>ICON_SYNC_MED.png</file>
     <file>ICON_SYNC_SML.png</file>
+    <file>ICON_TICK_SML.png</file>
     <file>ICON_TRASH_LRG.png</file>
     <file>ICON_TRASH_MED.png</file>
     <file>ICON_TRASH_SML.png</file>

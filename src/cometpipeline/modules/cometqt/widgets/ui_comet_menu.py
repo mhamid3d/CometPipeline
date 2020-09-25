@@ -59,8 +59,8 @@ class CometMenu(QtWidgets.QMenu):
         return line
 
     def create_actions(self):
-        self.createNewProject = self.addAction(label="Create New Project", icon=icon_paths.ICON_COMETPIPE_LRG, exc=self.doCreateProject)
-        self.manageProject = self.addAction(label="Manage Project", icon=icon_paths.ICON_INPROGRESS_LRG)
+        self.createNewProject = self.addAction(label="Create New Project", icon=icon_paths.ICON_CRAFT_LRG, exc=self.doCreateProject)
+        self.manageProject = self.addAction(label="Manage Project", icon=icon_paths.ICON_SLIDERS_LRG)
         self.switchProject = self.addAction(label="Switch Project", icon=icon_paths.ICON_RELOADGREY_LRG)
         self.addSeparator()
         self.closeBrowser = self.addAction(label="Quit Comet Browser", icon=icon_paths.ICON_DOOROPEN_LRG, exc=self.doCloseBrowser)
@@ -99,7 +99,7 @@ class CometMenuButton(QtWidgets.QFrame):
 
         self.projectLabel = QtWidgets.QLabel()
         self.projectLabel.setTextFormat(QtCore.Qt.RichText)
-        self.projectLabel.setText(self.get_project_label())
+        self.setProjectLabel(self.browserMain.currentJob())
         self.projectLabel.setStyleSheet("""
             QLabel{
                 background: transparent;
@@ -142,25 +142,33 @@ class CometMenuButton(QtWidgets.QFrame):
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
 
+    @property
+    def browserMain(self):
+        from cometbrowser.browser import ProjectBrowserMain
+        return cqtutil.get_top_window(self, ProjectBrowserMain)
+
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self.customContextMenuRequested.emit(event.pos())
         return super(CometMenuButton, self).mousePressEvent(event)
 
-    def get_project_label(self):
-        TEMPLATE = """
-        <html>
-        <head/>
-            <body>
-                <p>
-                    <span style=" font-size:12pt; font-weight:600; color:#ffffff;">{0}</span>
-                    <span style=" font-size:10pt; color:#a6a6a6;">{1}</span>
-                </p>
-            </body>
-        </html>
-                """.format("FIREFLY", "A GIFT OF LIGHT")
+    def setProjectLabel(self, jobObject):
+        if jobObject:
+            TEMPLATE = """
+            <html>
+            <head/>
+                <body>
+                    <p>
+                        <span style=" font-size:12pt; font-weight:600; color:#ffffff;">{0}</span>
+                        <span style=" font-size:10pt; color:#a6a6a6;">{1}</span>
+                    </p>
+                </body>
+            </html>
+                    """.format(jobObject.label, jobObject.fullname)
 
-        return "No Project Set"
+            return self.projectLabel.setText(TEMPLATE)
+
+        return self.projectLabel.setText("No Project Set")
 
     def contextMenu(self):
         self._menu = CometMenu(parent=self)

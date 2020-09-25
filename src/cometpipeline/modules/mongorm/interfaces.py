@@ -14,11 +14,12 @@ class Job(DataObject, mongoengine.Document):
     # Required fields
     fullname = mongoengine.StringField(required=True, dispName="Project Full Name")
     resolution = mongoengine.ListField(required=True, dispName="Resolution")
+    admins = mongoengine.ListField(required=True, dispName="Project Admins")
+    allowed_users = mongoengine.ListField(required=True, dispName="Allowed Users")
 
     # Optional fields
     description = mongoengine.StringField(dispName="Description")
     tags = mongoengine.ListField(dispName="Tags")
-    thumbnail = mongoengine.StringField(dispName="Thumbnail", icon=icon_paths.ICON_IMAGE_SML)
 
     def children(self):
         db = mongorm.getHandler()
@@ -87,7 +88,7 @@ class Entity(DataObject, mongoengine.Document):
     parent_uuid = mongoengine.StringField(dispName="Parent UUID")
 
     # Optional fields
-    prefix = mongoengine.StringField(required=True, dispName="Prefix")  # eg: 'char', 'environ', 'vehicle', etc
+    prefix = mongoengine.StringField(dispName="Prefix")  # eg: 'char', 'environ', 'vehicle', etc
     framerange = mongoengine.ListField(dispName="Frame Range")
     thumbnail = mongoengine.StringField(dispName="Thumbnail", icon=icon_paths.ICON_IMAGE_SML)
 

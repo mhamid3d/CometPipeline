@@ -27,8 +27,8 @@ def v_line():
     return frame
 
 
-def get_settings():
-    return QtCore.QSettings("Comet Pipeline", "Comet Browser")
+def get_settings(appName="Comet Browser"):
+    return QtCore.QSettings("Comet Pipeline", appName)
 
 
 def get_top_window(fromObject, topClass):
@@ -39,6 +39,27 @@ def get_top_window(fromObject, topClass):
     assert isinstance(w, topClass), "Could not find valid top window of instance {}. Got {} instead".format(str(topClass), str(w))
 
     return w
+
+
+class FlatIconButton(QtWidgets.QPushButton):
+    def __init__(self, size=32, icon=None):
+        super(FlatIconButton, self).__init__()
+        self.setFixedSize(size, size)
+        self.setIcon(QtGui.QIcon(icon))
+        self.setStyleSheet("""
+            QPushButton{
+                background: none;
+                border-radius: %spx;
+                border: none;
+            }
+            QPushButton:pressed{
+                background: #4e4e4e;
+            }
+            QPushButton:checked{
+                background: #5e5e5e;
+            }
+        """ % (size / 2))
+        self.setCursor(QtCore.Qt.PointingHandCursor)
 
 
 class FlowLayout(QtWidgets.QLayout):

@@ -11,7 +11,6 @@ class AbstractTreeItem(QtWidgets.QTreeWidgetItem):
         self.parent_main = parent_main
         self.dataObject = dataObject
         self.setText(0, self.dataObject.get("label"))
-        self.setIcon(0, QtGui.QIcon(self.dataObject.get("thumbnail")))
 
 
 class AbstractView(QtWidgets.QFrame):
@@ -91,7 +90,7 @@ class AbstractView(QtWidgets.QFrame):
         self.tree = QtWidgets.QTreeWidget()
         self.tree.setColumnCount(1)
         self.tree.setHeaderHidden(True)
-        self.tree.setIconSize(QtCore.QSize(32, 32))
+        self.tree.setIconSize(QtCore.QSize(20, 20))
         self.tree.setExpandsOnDoubleClick(False)
         self.tree.itemSelectionChanged.connect(self.populate_items)
 

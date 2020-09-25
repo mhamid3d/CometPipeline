@@ -1,30 +1,32 @@
-import sys
-from qtpy.QtWidgets import *
-from qtpy.QtCore import *
-
-TEXT = """Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam malesuada tellus in ex elementum, vitae rutrum enim vestibulum."""
-
-#==============================================================================
-class Window(QWidget):
-    def __init__(self, *args, **kwargs):
-        QWidget.__init__(self, *args, **kwargs)
-
-        # Widgets
-        self.label = QLabel(TEXT)
-        self.label.setWordWrap(True)
-
-        # Layout
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-        self.layout.addWidget(self.label)
-        # self.setMinimumSize(self.sizeHint())
-        self.setMaximumWidth(250)
-        self.show()
+# import mongorm
+#
+#
+# handler = mongorm.getHandler()
+# filter = mongorm.getFilter()
+#
+# filter.search(handler['entity'])
+#
+# all = handler['entity'].all(filter)
+#
+# for x in all:
+#     x.delete()
 
 
+from cometqt.widgets.ui_entity_viewer import EntityViewer
 
-#==============================================================================
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    win = Window()
+
+if __name__ == '__main__':
+    import sys
+    import mongorm
+    from qtpy import QtWidgets
+    app = QtWidgets.QApplication(sys.argv)
+    win = EntityViewer()
+    h = mongorm.getHandler()
+    f = mongorm.getFilter()
+    f.search(h['job'], label='DELOREAN')
+    job = h['job'].one(f)
+    win.setCurrentJob(job)
+    win.populate()
+    win.setIsDialog(True)
+    win.show()
     sys.exit(app.exec_())

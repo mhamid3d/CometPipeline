@@ -1,5 +1,6 @@
 from cometbrowser.ui.ui_abstract_view import AbstractView, AbstractTreeItem
 from qtpy import QtWidgets, QtGui, QtCore
+from cometpipe.core import ASSET_PREFIX_DICT
 from pipeicon import icon_paths
 import mongorm
 import logging
@@ -67,18 +68,28 @@ class AssetViewer(AbstractView):
         super(AssetViewer, self).__init__(parent_main=parent_main)
         self.view_splitter.setSizes([200, 900])
 
+    def setup_view(self):
+        super(AssetViewer, self).setup_view()
+
     def populate_assets(self):
-        self.filter.search(self.handler['entity'], type='asset', job=self.parent_main.currentJob.get("label"))
+        self.filter.search(self.handler['entity'], type='asset', job=self.parent_main.currentJob().get("label"))
         self.items = self.handler['entity'].all(self.filter)
 
-        job_root_item = AbstractTreeItem(parent_main=self.parent_main, dataObject=self.parent_main.currentJob,
+        job_root_item = AbstractTreeItem(parent_main=self.parent_main, dataObject=self.parent_main.currentJob(),
                                          treeParent=self.tree)
+        job_root_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_JOB_LRG))
 
-        for asset in self.items:
-            asset_item = QtWidgets.QTreeWidgetItem(job_root_item)
-            asset_item.setText(0, asset.label)
-            asset_item.setIcon(0, QtGui.QIcon(asset.thumbnail))
-            asset_item.object = asset
+        for cat in ASSET_PREFIX_DICT.keys():
+            item = QtWidgets.QTreeWidgetItem(job_root_item)
+            item.setText(0, cat)
+            item.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSETGROUP_LRG))
+
+            for asset in self.items:
+                if asset.get("prefix") == ASSET_PREFIX_DICT[cat]:
+                    asset_item = QtWidgets.QTreeWidgetItem(item)
+                    asset_item.setText(0, asset.label)
+                    asset_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
+                    asset_item.object = asset
 
         self.tree.expandAll()
 

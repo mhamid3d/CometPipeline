@@ -17,7 +17,7 @@ class NotificationThread(QtCore.QThread):
         self.client = self.handler.toMongoClient()
         self.change_stream = getattr(self.client, self.handler._DATABASE).notification.watch([
             {'$match': {
-                'operationType': {'$in': ['insert', 'replace']},
+                'operationType': {'$in': ['insert']},
                 'fullDocument.receiver_uuid': self.userObject.getUuid()
             }}
         ])

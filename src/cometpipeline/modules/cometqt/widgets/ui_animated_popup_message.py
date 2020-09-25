@@ -11,7 +11,7 @@ class AnimatedPopupMessage(QtWidgets.QLabel):
     def __init__(self, message="Placeholder Text", type=INFO, parent=None, width=None, height=100):
         super(AnimatedPopupMessage, self).__init__()
         self.setParent(parent)
-        self.setText(message)
+        self.setMessage(message)
         self._type = type
         self._width = width
         self._height = height
@@ -43,6 +43,9 @@ class AnimatedPopupMessage(QtWidgets.QLabel):
         self.anim = QtCore.QPropertyAnimation(self, b"geometry")
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.reverse_anim)
+
+    def setMessage(self, message):
+        self.setText(message)
 
     def do_anim(self):
         self.show()

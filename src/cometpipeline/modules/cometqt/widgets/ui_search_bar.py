@@ -3,8 +3,8 @@ from pipeicon import icon_paths
 
 
 class UiSearchBar(QtWidgets.QLineEdit):
-    def __init__(self, height=42):
-        super(UiSearchBar, self).__init__()
+    def __init__(self, height=42, parent=None):
+        super(UiSearchBar, self).__init__(parent)
         self.setMinimumHeight(height)
         self.setIcon(QtGui.QIcon(icon_paths.ICON_SEARCH_LRG))
         self.setStyleSheet("""
