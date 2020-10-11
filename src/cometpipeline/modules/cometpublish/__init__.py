@@ -26,8 +26,8 @@ ENTITY_TEMPLATE_STRUCTURE = {
 JOB_TEMPLATE_STRUCTURE = {
     'ASSETS': {cat: {} for cat in ASSET_PREFIX_DICT.keys()},
     'EDITORIAL': {'GRADING': {}},
-    'PRODUCTION': {'JOB': ENTITY_TEMPLATE_STRUCTURE},
-    'REF': {'OCIO'}
+    'PRODUCTION': {},
+    'REF': {'OCIO': {}}
 }
 
 

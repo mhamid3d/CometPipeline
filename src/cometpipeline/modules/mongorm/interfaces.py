@@ -83,7 +83,7 @@ class Entity(DataObject, mongoengine.Document):
     INTERFACE_STRING = "entity"
 
     # Required fields
-    type = mongoengine.StringField(required=True, dispName="Type")  # eg: 'sequence', 'shot', 'asset'
+    type = mongoengine.StringField(required=True, dispName="Type")  # eg: 'sequence', 'shot', 'asset', 'job'
     production = mongoengine.BooleanField(required=True, dispName="Active")  # Set false for testing / rnd stems
     parent_uuid = mongoengine.StringField(dispName="Parent UUID")
 

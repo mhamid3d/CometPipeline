@@ -10,11 +10,10 @@ apps:
             PYTHONPATH: [C:\_dev\CometPipeline\src\cometpipeline\modules\cometmaya\scripts]
     }
 
-
   katana:
     name: Katana
     icon: ICON_KATANA_LRG
-    exec: C:\Program Files\Katana3.5v2\bin\katanaBin.exe
+    exec: C:\Users\mhamid\Desktop\LAUNCH_KATANA.bat
     include-base-dcc-libs: True
     include-base-comet-libs: True
     vars: {

@@ -17,7 +17,7 @@ class ProjectBrowserBootstrap(object):
     def browser_portal(self, userObject):
         self.login_window.deleteLater()
         self.projectBrowser = ProjectBrowserMain(userObject=userObject, bootstrap=self)
-        self.projectBrowser.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+        # self.projectBrowser.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
         self.projectBrowser.show()
 
     def login_portal(self):
@@ -38,6 +38,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     font = QtGui.QFont("Roboto")
     font.setStyleHint(QtGui.QFont.Monospace)
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
     app.setFont(font)
     bootstrap = ProjectBrowserBootstrap()
     bootstrap.run()

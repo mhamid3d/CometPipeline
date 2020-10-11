@@ -32,13 +32,12 @@ def get_settings(appName="Comet Browser"):
 
 
 def get_top_window(fromObject, topClass):
-    w = fromObject.parent()
-    while w.parent():
-        w = w.parent()
+    while not isinstance(fromObject, topClass):
+        fromObject = fromObject.parent()
 
-    assert isinstance(w, topClass), "Could not find valid top window of instance {}. Got {} instead".format(str(topClass), str(w))
+    assert isinstance(fromObject, topClass), "Could not find valid top window of instance {}. Got {} instead".format(str(topClass), str(w))
 
-    return w
+    return fromObject
 
 
 class FlatIconButton(QtWidgets.QPushButton):
@@ -154,3 +153,5 @@ class FlowLayout(QtWidgets.QLayout):
             lineHeight = max(lineHeight, item.sizeHint().height())
 
         return y + lineHeight - rect.y()
+
+

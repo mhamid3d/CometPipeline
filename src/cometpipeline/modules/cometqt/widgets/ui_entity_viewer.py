@@ -4,6 +4,7 @@ from cometqt import util as cqtutil
 from pipeicon import icon_paths
 from cometpipe.core import ASSET_PREFIX_DICT
 import mongorm
+import os
 
 
 class EntityMenu(QtWidgets.QMenu):
@@ -18,6 +19,11 @@ class EntityMenu(QtWidgets.QMenu):
         self.collapseSelAction = self.addAction("Collapse Selection")
         self.expandAllAction = self.addAction("Expand All")
         self.collapseAllAction = self.addAction("Collapse All")
+        self.addSeparator()
+        self.editEntityAction = self.addAction("Edit Entity")
+
+        if cqtutil.get_top_window(self, EntityViewer).isDialog():
+            self.editEntityAction.setDisabled(True)
 
         self.copyAction.setIcon(QtGui.QIcon(icon_paths.ICON_COPY_LRG))
         self.copyPathAction.setIcon(QtGui.QIcon(icon_paths.ICON_COPY_LRG))
@@ -25,8 +31,8 @@ class EntityMenu(QtWidgets.QMenu):
 
 
 class EntityTree(QtWidgets.QTreeWidget):
-    def __init__(self):
-        super(EntityTree, self).__init__()
+    def __init__(self, parent):
+        super(EntityTree, self).__init__(parent=parent)
         self.setStyleSheet("""
             QTreeView{
                 border-radius: 0px;
@@ -71,40 +77,42 @@ class EntityTree(QtWidgets.QTreeWidget):
             self.expandItem(self.selectedItems()[0])
         elif self.main_action == self._menu.collapseSelAction:
             self.collapseItem(self.selectedItems()[0])
+        elif self.main_action == self._menu.editEntityAction:
+            if self.currentItem():
+                EntitySettings(parent=self, entityObject=self.currentItem().dataObject).exec_()
 
 
-class EntitySettings(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+class EntitySettings(QtWidgets.QDialog):
+    def __init__(self, parent=None, entityObject=None):
         super(EntitySettings, self).__init__(parent=parent)
+        self.setWindowTitle("Edit Entity - [{}]".format(entityObject.get("label")))
         self.mainLayout = QtWidgets.QFormLayout()
         self.mainLayout.setFormAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.mainLayout.setLabelAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.setLayout(self.mainLayout)
 
-    def update_with_entity(self, selection):
+        self.object = entityObject
 
-        for child in range(self.mainLayout.count()):
-            widget = self.mainLayout.itemAt(child).widget()
-            widget.deleteLater()
+        self.btnBox = QtWidgets.QDialogButtonBox()
+        self.createButton = QtWidgets.QPushButton("Edit")
+        self.cancelButton = QtWidgets.QPushButton("Cancel")
+        self.btnBox.addButton(self.createButton, QtWidgets.QDialogButtonBox.AcceptRole)
+        self.btnBox.addButton(self.cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
 
-        if not selection:
-            return
+        self.btnBox.accepted.connect(self.commitChanges)
+        self.btnBox.rejected.connect(self.reject)
 
-        self.selection = selection[0]
-        entityObject = self.selection.dataObject
-
-        if entityObject.INTERFACE_STRING == "entity":
+        if self.object.INTERFACE_STRING == "entity":
             self.rndCheckBox = QtWidgets.QCheckBox()
-            self.rndCheckBox.setChecked(not entityObject.get("production"))
+            self.rndCheckBox.setChecked(not self.object.get("production"))
             self.rndCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
-            self.rndCheckBox.stateChanged.connect(lambda: self.update_rnd(entityObject, not self.rndCheckBox.isChecked()))
             self.mainLayout.addRow("RND Entity", self.rndCheckBox)
 
-        if entityObject.get("type") == "asset":
+        if self.object.get("type") == "asset":
             pass
-        elif entityObject.get("type") == "sequence":
+        elif self.object.get("type") == "sequence":
             pass
-        elif entityObject.get("type") == "shot":
+        elif self.object.get("type") == "shot":
             self.resFrame = QtWidgets.QFrame()
             self.resFrame.setContentsMargins(0, 0, 0, 0)
             self.resFrame.setStyleSheet("""
@@ -122,19 +130,14 @@ class EntitySettings(QtWidgets.QWidget):
             self.beginFrameSpin.setRange(0, 99999)
             self.endFrameSpin.setRange(0, 99999)
 
-            inputFR = entityObject.get("framerange")
+            inputFR = self.object.get("framerange")
             if inputFR:
                 self.beginFrameSpin.setValue(inputFR[0])
                 self.endFrameSpin.setValue(inputFR[1])
 
             self.mainLayout.addRow("Frame Range", self.resFrame)
 
-            self.beginFrameSpin.editingFinished.connect(lambda: self.update_framerange(entityObject,
-                                                                                       [self.beginFrameSpin.value(),
-                                                                                        self.endFrameSpin.value()]))
-            self.endFrameSpin.editingFinished.connect(lambda: self.update_framerange(entityObject,
-                                                                                       [self.beginFrameSpin.value(),
-                                                                                        self.endFrameSpin.value()]))
+        self.mainLayout.addWidget(self.btnBox)
 
     def update_rnd(self, dataObject, value):
 
@@ -142,6 +145,8 @@ class EntitySettings(QtWidgets.QWidget):
 
         dataObject.production = value
         dataObject.save()
+
+        # TODO: do we really need to set all shots in a sequence to the same value?
 
         if dataObject.get("type") == "sequence":
             h = mongorm.getHandler()
@@ -152,11 +157,6 @@ class EntitySettings(QtWidgets.QWidget):
                 shot.production = value
                 shot.save()
 
-            for c in range(self.selection.childCount()):
-                ch = self.selection.child(c)
-                ch.dataObject.production = value
-                ch.dataObject.save()
-
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def update_framerange(self, dataObject, value):
@@ -166,6 +166,14 @@ class EntitySettings(QtWidgets.QWidget):
         dataObject.save()
 
         QtWidgets.QApplication.restoreOverrideCursor()
+
+    def commitChanges(self):
+        if self.object.INTERFACE_STRING == "entity":
+            self.update_rnd(self.object, not self.rndCheckBox.isChecked())
+        if self.object.get("type") == "shot":
+            self.update_framerange(self.object, [self.beginFrameSpin.value(), self.endFrameSpin.value()])
+
+        self.accept()
 
 
 class EntityViewer(QtWidgets.QWidget):
@@ -193,19 +201,13 @@ class EntityViewer(QtWidgets.QWidget):
             }
         """)
 
-        self.settingsLabel = QtWidgets.QLabel("Entity Settings")
-        self.settingsLabel.setIndent(0)
-        self.settingsLabel.setAlignment(QtCore.Qt.AlignLeft)
-        self.settingsLabel.setStyleSheet(self.topLabel.styleSheet())
-
         self.refreshButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_RELOAD_LRG)
         self.filterButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_FILTER_LRG)
         self.assetsButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_ASSET_LRG)
         self.productionButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_SEQUENCE_LRG)
         self.entityTypeButtonGrp = QtWidgets.QButtonGroup()
         self.searchBar = UiSearchBar(height=self.SEARCH_HEIGHT)
-        self.entityTree = EntityTree()
-        self.entitySettings = EntitySettings(parent=self)
+        self.entityTree = EntityTree(parent=self)
 
         self.assetsButton.setCheckable(True)
         self.productionButton.setCheckable(True)
@@ -214,8 +216,6 @@ class EntityViewer(QtWidgets.QWidget):
         self.entityTypeButtonGrp.addButton(self.productionButton, 1)
 
         self.searchBar.editingFinished.connect(self.doSearch)
-        self.updateEntityFunc = lambda: self.entitySettings.update_with_entity(self.entityTree.selectedItems())
-        self.entityTree.itemSelectionChanged.connect(self.updateEntityFunc)
         self.refreshButton.clicked.connect(self.populate)
         self.productionButton.clicked.connect(lambda: self.setEntityType(self.TYPE_PRODUCTION))
         self.assetsButton.clicked.connect(lambda: self.setEntityType(self.TYPE_ASSETS))
@@ -230,9 +230,7 @@ class EntityViewer(QtWidgets.QWidget):
         self.topSearchLayout.addWidget(self.filterButton)
         self.mainLayout.addWidget(cqtutil.h_line())
         self.mainLayout.addWidget(self.entityTree)
-        self.mainLayout.addWidget(self.settingsLabel)
-        self.mainLayout.addWidget(cqtutil.h_line())
-        self.mainLayout.addWidget(self.entitySettings)
+        # self.mainLayout.addWidget(cqtutil.h_line())
 
         self._currentJob = None
         self._isDialog = False
@@ -275,16 +273,7 @@ class EntityViewer(QtWidgets.QWidget):
         return self._currentJob
 
     def setIsDialog(self, bool):
-        if bool:
-            self.entityTree.itemSelectionChanged.disconnect(self.updateEntityFunc)
-            self.settingsLabel.hide()
-            self.entitySettings.hide()
-            self._isDialog = True
-        else:
-            self.entityTree.itemSelectionChanged.connect(self.updateEntityFunc)
-            self.settingsLabel.show()
-            self.entitySettings.show()
-            self._isDialog = False
+        self._isDialog = bool
 
     def isDialog(self):
         return self._isDialog
@@ -298,53 +287,58 @@ class EntityViewer(QtWidgets.QWidget):
 
         self.entityTree.clear()
 
-        jobRootItem = QtWidgets.QTreeWidgetItem(self.entityTree)
-        jobRootItem.setText(0, jobObject.get("label"))
-        jobRootItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
-        jobRootItem.dataObject = jobObject
+        if jobObject:
 
-        if self._entityType == self.TYPE_ASSETS:
-            filter.search(handler['entity'], job=jobObject.job, type='asset')
-            all_assets = handler['entity'].all(filter)
-
-            for catFull, cat in ASSET_PREFIX_DICT.items():
-
-                catItem = QtWidgets.QTreeWidgetItem(jobRootItem)
-                catItem.setText(0, catFull)
-                catItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSETGROUP_LRG))
-                catItem.setFlags(QtCore.Qt.ItemIsEnabled)
-
-                for asset in all_assets:
-                    if asset.get("prefix") == cat:
-                        asset_item = QtWidgets.QTreeWidgetItem(catItem)
-                        asset_item.setText(0, asset.get("label"))
-                        asset_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
-                        asset_item.dataObject = asset
-
-        elif self._entityType == self.TYPE_PRODUCTION:
-            filter.search(handler['entity'], job=jobObject.job, type='sequence')
-            all_sequences = handler['entity'].all(filter)
+            filter.search(handler['entity'], job=jobObject.job, type='job', label=jobObject.job)
+            jobEntityObject = handler['entity'].one(filter)
             filter.clear()
-            filter.search(handler['entity'], job=jobObject.job, type='shot')
-            all_shots = handler['entity'].all(filter)
 
-            for sequence in all_sequences:
+            jobRootItem = QtWidgets.QTreeWidgetItem(self.entityTree)
+            jobRootItem.setText(0, jobEntityObject.get("label"))
+            jobRootItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
+            jobRootItem.dataObject = jobEntityObject
 
-                seq_item = QtWidgets.QTreeWidgetItem(jobRootItem)
-                seq_item.setText(0, sequence.get("label"))
-                seq_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
-                seq_item.dataObject = sequence
+            if self._entityType == self.TYPE_ASSETS:
+                filter.search(handler['entity'], job=jobObject.job, type='asset')
+                all_assets = handler['entity'].all(filter)
 
-                for shot in all_shots:
-                    if shot.get("parent_uuid") == sequence.uuid:
-                        shot_item = QtWidgets.QTreeWidgetItem(seq_item)
-                        shot_item.setText(0, shot.get("label"))
-                        shot_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_SHOT_LRG))
-                        shot_item.dataObject = shot
+                for catFull, cat in ASSET_PREFIX_DICT.items():
+
+                    catItem = QtWidgets.QTreeWidgetItem(jobRootItem)
+                    catItem.setText(0, catFull)
+                    catItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSETGROUP_LRG))
+                    catItem.setFlags(QtCore.Qt.ItemIsEnabled)
+
+                    for asset in all_assets:
+                        if asset.get("prefix") == cat:
+                            asset_item = QtWidgets.QTreeWidgetItem(catItem)
+                            asset_item.setText(0, asset.get("label"))
+                            asset_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
+                            asset_item.dataObject = asset
+
+            elif self._entityType == self.TYPE_PRODUCTION:
+                filter.search(handler['entity'], job=jobObject.job, type='sequence')
+                all_sequences = handler['entity'].all(filter)
+                filter.clear()
+                filter.search(handler['entity'], job=jobObject.job, type='shot')
+                all_shots = handler['entity'].all(filter)
+
+                for sequence in all_sequences:
+
+                    seq_item = QtWidgets.QTreeWidgetItem(jobRootItem)
+                    seq_item.setText(0, sequence.get("label"))
+                    seq_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
+                    seq_item.dataObject = sequence
+
+                    for shot in all_shots:
+                        if shot.get("parent_uuid") == sequence.uuid:
+                            shot_item = QtWidgets.QTreeWidgetItem(seq_item)
+                            shot_item.setText(0, shot.get("label"))
+                            shot_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_SHOT_LRG))
+                            shot_item.dataObject = shot
 
         self.doSearch()
         self.entityTree.expandAll()
-
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def doSearch(self):
@@ -365,6 +359,58 @@ class EntityViewer(QtWidgets.QWidget):
                 all_parent.append(kp)
             for parent in all_parent:
                 parent.setHidden(False)
+
+
+class EntityPickerDialog(QtWidgets.QDialog):
+    def __init__(self, setEnvOnClose=True):
+        super(EntityPickerDialog, self).__init__()
+        self.setWindowTitle("Set Entity")
+        self._setEnvOnClose = setEnvOnClose
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        # TODO
+        filt.search(handler['job'], label="DELOREAN")
+        job = handler['job'].one(filt)
+        self.entityViewer = EntityViewer()
+        self.entityViewer.setContentsMargins(0, 0, 0, 0)
+        self.entityViewer.setCurrentJob(job)
+        self.entityViewer.setIsDialog(True)
+        self.entityViewer.populate()
+
+        self.mainLayout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.mainLayout)
+
+        self.diagButtonBox = QtWidgets.QDialogButtonBox()
+        self.diagButtonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+
+        self.mainLayout.addWidget(self.entityViewer)
+        self.mainLayout.addWidget(self.diagButtonBox)
+
+        self.diagButtonBox.accepted.connect(self.accept)
+        self.diagButtonBox.rejected.connect(self.reject)
+
+        self.loadCurrent()
+
+    def loadCurrent(self):
+        return
+
+        entity = os.getenv("ENTITY")
+        handler = mongorm.getHandler()
+
+        filt = mongorm.getFilter()
+        filt.search(handler['entity'], job=os.getenv("JOB"), label=entity)
+
+
+        if etype:
+            self.entityViewer.setEntityType(etype)
+        if entity:
+            for item in self.entityViewer.getAllItems():
+                if item.text(0) == entity:
+                    self.entityViewer.entityTree.setCurrentItem(item)
+                    break
+
+    def getSelection(self):
+        return self.entityViewer.entityTree.selectedItems()
 
 
 if __name__ == '__main__':

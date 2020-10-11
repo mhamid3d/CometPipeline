@@ -61,7 +61,7 @@ class CometMenu(QtWidgets.QMenu):
     def create_actions(self):
         self.createNewProject = self.addAction(label="Create New Project", icon=icon_paths.ICON_CRAFT_LRG, exc=self.doCreateProject)
         self.manageProject = self.addAction(label="Manage Project", icon=icon_paths.ICON_SLIDERS_LRG)
-        self.switchProject = self.addAction(label="Switch Project", icon=icon_paths.ICON_RELOADGREY_LRG)
+        self.switchProject = self.addAction(label="Switch Project", icon=icon_paths.ICON_RELOADGREY_LRG, exc=self.doSwitchProject)
         self.addSeparator()
         self.closeBrowser = self.addAction(label="Quit Comet Browser", icon=icon_paths.ICON_DOOROPEN_LRG, exc=self.doCloseBrowser)
 
@@ -76,6 +76,50 @@ class CometMenu(QtWidgets.QMenu):
         top_window = cqtutil.get_top_window(self, ProjectBrowserMain)
         self.createProjectWindow = CreateProjectWindow(parent=top_window)
         self.createProjectWindow.exec_()
+
+    def doSwitchProject(self):
+        import mongorm
+
+        diag = QtWidgets.QDialog()
+        diag.setWindowTitle("Switch Project")
+        lyt = QtWidgets.QVBoxLayout()
+        diag.setLayout(lyt)
+
+        jobComboBox = QtWidgets.QComboBox()
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(handler['job'])
+        jobs = handler['job'].all(filt)
+        jobs.sort(sort_field="label")
+
+        target_idx = 0
+        current_uuid = self.parent().browserMain.currentJob()
+        if current_uuid:
+            current_uuid = current_uuid.getUuid()
+        for idx, job in enumerate(jobs):
+            jobComboBox.addItem(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG), job.get("label"))
+            if job.getUuid() == current_uuid:
+                target_idx = idx
+
+        jobComboBox.setCurrentIndex(target_idx)
+
+        btnBox = QtWidgets.QDialogButtonBox()
+        createButton = QtWidgets.QPushButton("Switch")
+        cancelButton = QtWidgets.QPushButton("Cancel")
+        btnBox.addButton(createButton, QtWidgets.QDialogButtonBox.AcceptRole)
+        btnBox.addButton(cancelButton, QtWidgets.QDialogButtonBox.RejectRole)
+
+        btnBox.accepted.connect(diag.accept)
+        btnBox.rejected.connect(diag.reject)
+
+        lyt.addWidget(jobComboBox)
+        lyt.addWidget(btnBox)
+
+        value = diag.exec_()
+
+        if value == QtWidgets.QDialog.Accepted:
+            selectedJob = jobs[jobComboBox.currentIndex()]
+            self.parent().browserMain.setCurrentJob(selectedJob)
 
 
 class CometMenuButton(QtWidgets.QFrame):

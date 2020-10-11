@@ -67,6 +67,7 @@ class ProjectBrowserMain(BaseMainWindow):
         self.settings.endGroup()
 
         self.jobChanged.emit(self._currentJob)
+        os.environ['SHOW'] = self._currentJob.get("label")
 
     def currentJob(self):
         return self._currentJob
@@ -138,15 +139,17 @@ class ProjectBrowserMain(BaseMainWindow):
         else:
             filter.search(handler['job'], label=current_job)
             jobObject = handler['job'].one(filter)
-            self.setCurrentJob(jobObject)
+            if jobObject:
+                self.setCurrentJob(jobObject)
+            else:
+                self.setCurrentJob(None)
 
         entity_type = self.settings.value("project/entity_type")
         self.productionPage.entityViewer.setEntityType(entity_type)
-        os.environ['ENTITY_TYPE'] = entity_type
 
         current_entity = self.settings.value("project/current_entity")
         if not current_entity == "none":
-            os.environ['ENTITY'] = current_entity
+            os.environ['SHOT'] = current_entity
             for item in self.productionPage.entityViewer.getAllItems():
                 if item.text(0) == current_entity:
                     self.productionPage.entityViewer.entityTree.setCurrentItem(item)

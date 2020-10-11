@@ -79,7 +79,8 @@ class LauncherAppWidget(QtWidgets.QPushButton):
         return command
 
     def launch_app(self):
-        subprocess.Popen(self.build_final_command(), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(self.build_final_command(), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         creationflags=subprocess.CREATE_NEW_CONSOLE)
 
 
 class LaunchersPage(QtWidgets.QWidget):

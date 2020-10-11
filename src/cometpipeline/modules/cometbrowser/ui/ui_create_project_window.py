@@ -1183,6 +1183,22 @@ class CreateProjectWindow(QtWidgets.QDialog):
         jobObject.save()
         cometpublish.build_job_directory(jobObject)
 
+        # Create Job Entity
+        jobEntityObject = handler['entity'].objectPrototype()
+        jobEntityObject._generate_id()
+        jobEntityObject.created = datetime.datetime.now()
+        jobEntityObject.modified = jobEntityObject.created
+        jobEntityObject.label = jobObject.label
+        jobEntityObject.path = os.path.abspath(os.path.join(
+            jobObject.path, "production", jobEntityObject.label))
+        jobEntityObject.job = jobObject.job
+        jobEntityObject.type = 'job'
+        jobEntityObject.production = True
+        jobEntityObject.parent_uuid = None
+        jobEntityObject.created_by = currentUser.uuid
+        jobEntityObject.save()
+        cometpublish.build_entity_directory(jobEntityObject)
+
         # Create Asset Objects
         for assetCategory, assetItems in assetsForm.items():
             assetType = ASSET_PREFIX_DICT[assetCategory]
@@ -1197,7 +1213,7 @@ class CreateProjectWindow(QtWidgets.QDialog):
                 assetObject.type = 'asset'
                 assetObject.production = assetItem.assetData['assetProduction']
                 assetObject.prefix = assetType
-                assetObject.parent_uuid = jobObject.uuid
+                assetObject.parent_uuid = jobEntityObject.uuid
                 if assetItem.assetData['assetThumbnail']:
                     assetObject.thumbnail = assetItem.assetData['assetThumbnail']
                 assetObject.created_by = currentUser.uuid
@@ -1216,7 +1232,7 @@ class CreateProjectWindow(QtWidgets.QDialog):
             sequenceObject.job = jobObject.job
             sequenceObject.type = 'sequence'
             sequenceObject.production = sequence.sequenceData['sequenceProduction']
-            sequenceObject.parent_uuid = jobObject.uuid
+            sequenceObject.parent_uuid = jobEntityObject.uuid
             sequenceObject.created_by = currentUser.uuid
             sequenceObject.save()
             cometpublish.build_entity_directory(sequenceObject)

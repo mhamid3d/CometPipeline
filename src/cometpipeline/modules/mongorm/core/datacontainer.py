@@ -58,7 +58,7 @@ class DataContainer(object):
 
     def sort(self, sort_field, reverse=False):
         if sort_field not in [field.db_field for field in self._interface.getFields()]:
-            raise RuntimeError(
+            raise TypeError(
                 "Invalid sort field ({}) for DataInterface ({})".format(sort_field, self.interfaceName()))
         self._sortField = sort_field
         self._objects = sorted(self._objects, key=lambda i: i.get(sort_field), reverse=reverse)

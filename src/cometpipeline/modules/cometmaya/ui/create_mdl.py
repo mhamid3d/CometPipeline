@@ -56,12 +56,17 @@ class CreateMDL(QtWidgets.QWidget):
         self.okButton = QtWidgets.QPushButton("Create")
         self.mainLayout.addWidget(self.okButton)
 
+        self.okButton.clicked.connect(self.createModel)
+
     def createModel(self):
-        if not self.assetNameLine.text():
+        assetName = self.assetNameLine.text()
+        if not assetName:
             return False
 
-        assetName = self.assetNameLine.text()
-        
+        master_grp = cmds.group(em=True, name=str(assetName) + "_model_grp")
+        locator_grp = cmds.group(em=True, name="locator_grp", parent=master_grp)
+
+        self.close()
 
 if __name__ == '__main__':
     import sys
