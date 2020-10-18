@@ -1,0 +1,5 @@
+#! /usr/bin/bash
+
+unset CONDALIBS
+export PYTHONPATH=$PYTHONPATH_OLD
+unset PYTHONPATH_OLD
