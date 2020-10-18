@@ -9,8 +9,8 @@ import mongorm
 class NotificationThread(QtCore.QThread):
     notificationReceived = QtCore.Signal(object)
 
-    def __init__(self, userObject=None):
-        super(NotificationThread, self).__init__()
+    def __init__(self, userObject=None, parent=None):
+        super(NotificationThread, self).__init__(parent=parent)
         self.userObject = userObject
         self.handler = mongorm.getHandler()
         self.filter = mongorm.getFilter()
@@ -21,12 +21,32 @@ class NotificationThread(QtCore.QThread):
                 'fullDocument.receiver_uuid': self.userObject.getUuid()
             }}
         ])
+        self._continue = True
+
+    def quit(self):
+        self.change_stream.close()
+        self._continue = False
+        super(NotificationThread, self).quit()
+        self.wait(5000)
+
+    def exit(self, *args, **kwargs):
+        self.change_stream.close()
+        self._continue = False
+        super(NotificationThread, self).exit()
+        self.wait(5000)
+
+    def terminate(self):
+        self.change_stream.close()
+        self._continue = False
+        super(NotificationThread, self).terminate()
+        self.wait(5000)
 
     def run(self):
-        for change in self.change_stream:
-            uuid = change['fullDocument']['uuid']
-            dataObject = self.handler['notification'].get(uuid)
-            self.notificationReceived.emit(dataObject)
+        while self._continue:
+            for change in self.change_stream:
+                uuid = change['fullDocument']['uuid']
+                dataObject = self.handler['notification'].get(uuid)
+                self.notificationReceived.emit(dataObject)
 
 
 class NotificationMenuAction(QtWidgets.QFrame):
@@ -364,7 +384,7 @@ class NotificationButton(QtWidgets.QPushButton):
         self.notificationCountLabel.move(16, 3)
         self.notificationCountLabel.setParent(self)
 
-        self.notificationThread = NotificationThread(userObject=self.userObject)
+        self.notificationThread = NotificationThread(userObject=self.userObject, parent=self)
         self.notificationThread.notificationReceived.connect(self.notificationReceived)
         self.notificationThread.start()
 

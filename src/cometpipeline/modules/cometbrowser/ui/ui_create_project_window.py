@@ -1,8 +1,9 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from cometpipe.core import ASSET_PREFIX_DICT
+from cometpipe.core import DEFAULT_ROOT_ENTITIES
 from cometqt import util as cqtutil
 from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 from pipeicon import icon_paths
+from mongorm import util as mgutil
 import cometpublish
 import mongorm
 import datetime
@@ -116,7 +117,6 @@ class InitialForm(QtWidgets.QFrame):
         self.resolutionFrame = QtWidgets.QFrame()
         self.resolutionLayout = QtWidgets.QHBoxLayout()
         self.resolutionFrame.setLayout(self.resolutionLayout)
-        self.resolutionComboBox = QtWidgets.QComboBox()
         self.xResSpin = QtWidgets.QSpinBox()
         self.yResSpin = QtWidgets.QSpinBox()
         self.aspectSpin = QtWidgets.QDoubleSpinBox()
@@ -132,7 +132,6 @@ class InitialForm(QtWidgets.QFrame):
         self.aspectSpin.setSingleStep(0.1)
         self.xResSpin.setSingleStep(100)
         self.yResSpin.setSingleStep(100)
-        # self.resolutionLayout.addWidget(self.resolutionComboBox)
         self.resolutionLayout.addWidget(self.xResSpin)
         self.resolutionLayout.addWidget(self.yResSpin)
         self.resolutionLayout.addWidget(self.aspectSpin)
@@ -154,16 +153,9 @@ class InitialForm(QtWidgets.QFrame):
         self.xResSpin.setStyleSheet(spinStyle)
         self.yResSpin.setStyleSheet(spinStyle)
         self.aspectSpin.setStyleSheet(spinStyle)
-        self.resolutionComboBox.setStyleSheet("""
-            QComboBox{
-                border-radius: 0px;
-                background: black;
-            }
-        """)
         self.xResSpin.setFixedHeight(42)
         self.yResSpin.setFixedHeight(42)
         self.aspectSpin.setFixedHeight(42)
-        self.resolutionComboBox.setFixedHeight(42)
 
         # Color Space
         self.colorSpaceFrame = QtWidgets.QFrame()
@@ -240,11 +232,36 @@ class InitialForm(QtWidgets.QFrame):
         self.directoryFileDialog = QtWidgets.QFileDialog()
         self.directoryBrowse.clicked.connect(self.directory_browse)
 
+        # Create Default Assets
+        self.createDefaultAssetsCheck = QtWidgets.QCheckBox()
+        self.createDefaultAssetsCheck.setChecked(True)
+        self.createDefaultAssetsCheck.setCursor(QtCore.Qt.PointingHandCursor)
+        self.createDefaultAssetsCheck.setStyleSheet("""
+            QCheckBox::indicator{
+                border: 1px solid #6e6e6e;
+                border-radius: 0px;
+                padding: 2px;
+            }
+            QCheckBox::indicator:hover{
+                border: 1px solid white;
+            }
+            QCheckBox::indicator:checked{
+                background: #148CD2;
+                border: 1px solid #148CD2;
+                image: url(%s);
+            }
+            QCheckBox::indicator:unchecked{
+                background: none;
+                image: none;
+            }
+        """ % icon_paths.ICON_TICK_SML)
+
         self.formLayout.addRow("FULL TITLE", self.projectNameLine)
         self.formLayout.addRow("ALIAS", self.projectAliasLine, tip="Project code that will be used for all of production. Keep it simple and short.")
         self.formLayout.addRow("DIRECTORY", self.directoryFrame)
         self.formLayout.addRow("COLOR SPACE CONFIG", self.colorSpaceFrame, tip="Config will be cloned to project directory.")
         self.formLayout.addRow("RESOLUTION", self.resolutionFrame)
+        self.formLayout.addRow("CREATE DEFAULT ASSETS", self.createDefaultAssetsCheck)
 
         self.closeButton = QtWidgets.QPushButton("CLOSE")
         self.nextButton = QtWidgets.QPushButton("NEXT")
@@ -333,6 +350,7 @@ class InitialForm(QtWidgets.QFrame):
         directory = self.directoryLine.text()
         colorConfig = self.colorSpaceLine.text()
         resolution = [self.xResSpin.value(), self.yResSpin.value(), self.aspectSpin.value()]
+        createDefaultAssets = self.createDefaultAssetsCheck.isChecked()
 
         if not fullTitle or len(fullTitle) < 2:
             self.error_widget.setMessage("Full Title of project is required")
@@ -361,7 +379,8 @@ class InitialForm(QtWidgets.QFrame):
             'jobAlias': alias,
             'jobDirectory': directory,
             'jobColorConfig': colorConfig,
-            'jobResolution': resolution
+            'jobResolution': resolution,
+            'createDefaultAssets': createDefaultAssets
         }
         self.parent().setCurrentIndex(self.parent().currentIndex() + 1)
 
@@ -389,11 +408,6 @@ class AssetsForm(QtWidgets.QFrame):
                 border-radius: 0px;
             }
         """)
-        self.assetTree.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
-        for prefix in sorted(ASSET_PREFIX_DICT.keys()):
-            item = QtWidgets.QTreeWidgetItem(self.assetTree)
-            item.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSETGROUP_LRG))
-            item.setText(0, prefix)
         self.removeButton = QtWidgets.QPushButton("Remove Selection")
         self.removeButton.setFixedHeight(42)
         self.removeButton.setCursor(QtCore.Qt.PointingHandCursor)
@@ -416,18 +430,6 @@ class AssetsForm(QtWidgets.QFrame):
         self.treeLayout.addWidget(self.removeButton)
 
         self.nameLine = ValidationLineEdit("Marty")
-
-        self.prefixComboBox = QtWidgets.QComboBox()
-        self.prefixComboBox.setFixedHeight(42)
-        self.prefixComboBox.addItems(sorted(ASSET_PREFIX_DICT.keys()))
-        self.prefixComboBox.setStyleSheet("""
-            QComboBox{
-                border-radius: 0px;
-                background: black;
-                min-height: 42px;
-                padding-left: 8px;
-            }
-        """)
 
         self.productionCheckBox = QtWidgets.QCheckBox()
         self.productionCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
@@ -507,7 +509,6 @@ class AssetsForm(QtWidgets.QFrame):
         self.addButton.clicked.connect(self.add_asset)
 
         self.formLayout.addRow("NAME", self.nameLine)
-        self.formLayout.addRow("TYPE", self.prefixComboBox)
         self.formLayout.addRow("IS THIS ASSET FOR TESTING / RND ?", self.productionCheckBox)
         self.formLayout.addRow("THUMBNAIL", self.thumbnailFrame, tip="You can change this later.")
         self.formLayout.addRow("", self.addButton)
@@ -593,7 +594,8 @@ class AssetsForm(QtWidgets.QFrame):
         assetProduction = not self.productionCheckBox.isChecked()
         assetThumbnail = self.thumbnailLine.text()
         assetThumbnail = assetThumbnail if assetThumbnail else None
-        assetCategory = self.prefixComboBox.currentText()
+
+        parentItem = self.assetTree.currentItem() if self.assetTree.currentItem() else self.assetTree
 
         if not self.nameLine.text():
             try:
@@ -605,16 +607,24 @@ class AssetsForm(QtWidgets.QFrame):
             self.emptyNameError.do_anim()
             return False
 
-        itemExists = self.assetTree.findItems(str(assetName), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive, 0)
-        if itemExists:
-            categories = [item.parent().text(0) for item in itemExists]
-            if assetCategory in categories:
+        existingSiblings = []
+
+        if isinstance(parentItem, QtWidgets.QTreeWidget):
+            for i in range(parentItem.topLevelItemCount()):
+                existingSiblings.append(parentItem.topLevelItem(i))
+        else:
+            for i in range(parentItem.childCount()):
+                existingSiblings.append(parentItem.child(i))
+
+        if existingSiblings:
+            if assetName in [sib.text(0) for sib in existingSiblings]:
                 try:
                     self.itemExistsError.deleteLater()
                 except:
                     pass
+                parentName = '/' if isinstance(parentItem, QtWidgets.QTreeWidget) else parentItem.text(0)
                 self.itemExistsError = AnimatedPopupMessage(
-                    message="Asset with name {} and category {} already exists".format(assetName, assetCategory),
+                    message="Asset with name '{}' and parent '{}' already exists".format(assetName, parentName),
                     type=AnimatedPopupMessage.ERROR,
                     parent=self.parent(),
                     width=self.parent().width()
@@ -622,15 +632,13 @@ class AssetsForm(QtWidgets.QFrame):
                 self.itemExistsError.do_anim()
                 return False
 
-        prefixItem = self.assetTree.findItems(str(assetCategory), QtCore.Qt.MatchExactly, 0)[0]
-        assetItem = QtWidgets.QTreeWidgetItem(prefixItem)
+        assetItem = QtWidgets.QTreeWidgetItem(parentItem)
         assetItem.setText(0, assetName)
         assetItem.setIcon(0, QtGui.QIcon(assetThumbnail if assetThumbnail else icon_paths.ICON_ASSET_LRG))
         assetItem.assetData = {
             'assetName': assetName,
             'assetProduction': assetProduction,
             'assetThumbnail': assetThumbnail,
-            'assetCategory': assetCategory
         }
 
         self.assetTree.expandAll()
@@ -657,8 +665,6 @@ class AssetsForm(QtWidgets.QFrame):
             button.setIcon(QtGui.QIcon())
 
     def validate_page(self):
-        self.isValid = False
-
         self.isValid = True
 
         for cat in [self.assetTree.topLevelItem(i) for i in range(self.assetTree.topLevelItemCount())]:
@@ -763,7 +769,6 @@ class SequencesForm(QtWidgets.QFrame):
         self.productionCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.underscoreCheckBox = QtWidgets.QCheckBox()
-        # self.underscoreCheckBox.setChecked(True)
         self.underscoreCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.paddingCheckBox = QtWidgets.QCheckBox()
@@ -1028,8 +1033,6 @@ class ReviewFinishForm(QtWidgets.QFrame):
 
     def setup_summary(self):
         initial = self.parent().initalForm.validationData
-        assetsForm = self.parent().assetsForm.validationData
-        sequencesForm = self.parent().sequencesForm.validationData
 
         self.productionIcon = QtWidgets.QLabel()
         self.productionIcon.setPixmap(QtGui.QPixmap(icon_paths.ICON_FILMCLAPBOARD_LRG).scaled(
@@ -1056,18 +1059,6 @@ class ReviewFinishForm(QtWidgets.QFrame):
             initial['jobResolution'][0], initial['jobResolution'][1], initial['jobResolution'][2]
         )))
         self.formLayout.addRow("COLOR CONFIG", QtWidgets.QLabel(initial['jobColorConfig']))
-        assetString = ""
-        for assetCat in assetsForm:
-            assetString += "  {} ({})  ".format(assetCat, len(assetsForm[assetCat]))
-        self.assetsLabel = QtWidgets.QLabel(assetString)
-        self.formLayout.addRow("ASSETS", self.assetsLabel)
-        seqString = ""
-        for seq in sequencesForm:
-            seqString += "  {} ({})  ".format(seq.text(0), len(sequencesForm[seq]))
-        self.sequencesLabel = QtWidgets.QLabel(seqString)
-        # TODO: can't get the sequences to word wrap properly. Need to figure it out
-        # self.sequencesLabel.setWordWrap(True)
-        self.formLayout.addRow("SEQUENCES", self.sequencesLabel)
 
 
 class CreateProjectWindow(QtWidgets.QDialog):
@@ -1112,19 +1103,13 @@ class CreateProjectWindow(QtWidgets.QDialog):
         self.top_frame_layout.setAlignment(QtCore.Qt.AlignHCenter)
 
         self.projectInfoButton = PageButton("Project Info")
-        self.assetsButton = PageButton("Assets")
-        self.sequencesButton = PageButton("Sequences / Shots")
         self.reviewFinishButton = PageButton("Review and Finish")
 
         self.top_frame_layout.addWidget(self.projectInfoButton)
-        self.top_frame_layout.addWidget(self.assetsButton)
-        self.top_frame_layout.addWidget(self.sequencesButton)
         self.top_frame_layout.addWidget(self.reviewFinishButton)
 
         self.button_group.addButton(self.projectInfoButton, 0)
-        self.button_group.addButton(self.assetsButton, 1)
-        self.button_group.addButton(self.sequencesButton, 2)
-        self.button_group.addButton(self.reviewFinishButton, 3)
+        self.button_group.addButton(self.reviewFinishButton, 1)
 
         self.projectInfoButton.setChecked(True)
 
@@ -1132,18 +1117,10 @@ class CreateProjectWindow(QtWidgets.QDialog):
 
     def create_pages(self):
         self.initalForm = InitialForm(parent=self)
-        self.assetsForm = AssetsForm(parent=self)
-        self.sequencesForm = SequencesForm(parent=self)
         self.reviewFinishForm = None
 
         self.stack_main.addWidget(self.initalForm)
-        self.stack_main.addWidget(self.assetsForm)
-        self.stack_main.addWidget(self.sequencesForm)
         self.stack_main.addWidget(QtWidgets.QFrame())
-
-    def pageButtonClicked(self, button):
-        idx = self.button_group.id(button)
-        self.stack_main.setCurrentIndex(idx)
 
     def indexChanged(self):
         idx = self.stack_main.currentIndex()
@@ -1160,12 +1137,10 @@ class CreateProjectWindow(QtWidgets.QDialog):
         QtWidgets.QApplication.instance().setOverrideCursor(QtCore.Qt.WaitCursor)
 
         initialForm = self.initalForm.validationData
-        assetsForm = self.assetsForm.validationData
-        sequencesForm = self.sequencesForm.validationData
 
         handler = mongorm.getHandler()
 
-        currentUser = self.parent().currentUser()
+        currentUser = mgutil.getCurrentUser()
 
         # Create Job Object
         jobObject = handler['job'].objectPrototype()
@@ -1199,60 +1174,77 @@ class CreateProjectWindow(QtWidgets.QDialog):
         jobEntityObject.save()
         cometpublish.build_entity_directory(jobEntityObject)
 
-        # Create Asset Objects
-        for assetCategory, assetItems in assetsForm.items():
-            assetType = ASSET_PREFIX_DICT[assetCategory]
-            for assetItem in assetItems:
+        if initialForm['createDefaultAssets']:
+            default_asset_list = sorted(DEFAULT_ROOT_ENTITIES)
+            for default_asset in default_asset_list:
                 assetObject = handler['entity'].objectPrototype()
                 assetObject._generate_id()
                 assetObject.created = datetime.datetime.now()
                 assetObject.modified = assetObject.created
-                assetObject.label = assetItem.assetData['assetName']
-                assetObject.path = os.path.abspath(os.path.join(jobObject.path, "assets", assetCategory, assetObject.label))
+                assetObject.label = default_asset
+                assetObject.path = os.path.abspath(os.path.join(jobObject.path, "assets", assetObject.label))
                 assetObject.job = jobObject.job
                 assetObject.type = 'asset'
-                assetObject.production = assetItem.assetData['assetProduction']
-                assetObject.prefix = assetType
+                assetObject.production = True
                 assetObject.parent_uuid = jobEntityObject.uuid
-                if assetItem.assetData['assetThumbnail']:
-                    assetObject.thumbnail = assetItem.assetData['assetThumbnail']
                 assetObject.created_by = currentUser.uuid
                 assetObject.save()
                 cometpublish.build_entity_directory(assetObject)
 
-        # Create Sequence Objects
-        for sequence, shots in sequencesForm.items():
-            sequenceObject = handler['entity'].objectPrototype()
-            sequenceObject._generate_id()
-            sequenceObject.created = datetime.datetime.now()
-            sequenceObject.modified = sequenceObject.created
-            sequenceObject.label = sequence.sequenceData['sequenceName']
-            sequenceObject.path = os.path.abspath(os.path.join(
-                jobObject.path, "production", sequenceObject.label))
-            sequenceObject.job = jobObject.job
-            sequenceObject.type = 'sequence'
-            sequenceObject.production = sequence.sequenceData['sequenceProduction']
-            sequenceObject.parent_uuid = jobEntityObject.uuid
-            sequenceObject.created_by = currentUser.uuid
-            sequenceObject.save()
-            cometpublish.build_entity_directory(sequenceObject)
-
-            # Create Shot Objects
-            for shot in shots:
-                shotObject = handler['entity'].objectPrototype()
-                shotObject._generate_id()
-                shotObject.created = datetime.datetime.now()
-                shotObject.modified = shotObject.created
-                shotObject.label = shot.shotData['shotName']
-                shotObject.path = os.path.abspath(os.path.join(
-                    jobObject.path, "production", shotObject.label))
-                shotObject.job = jobObject.job
-                shotObject.type = 'shot'
-                shotObject.production = sequenceObject.production
-                shotObject.parent_uuid = sequenceObject.uuid
-                shotObject.created_by = currentUser.uuid
-                shotObject.save()
-                cometpublish.build_entity_directory(shotObject)
+        # # Create Asset Objects
+        # for assetCategory, assetItems in assetsForm.items():
+        #     assetType = ASSET_PREFIX_DICT[assetCategory]
+        #     for assetItem in assetItems:
+        #         assetObject = handler['entity'].objectPrototype()
+        #         assetObject._generate_id()
+        #         assetObject.created = datetime.datetime.now()
+        #         assetObject.modified = assetObject.created
+        #         assetObject.label = assetItem.assetData['assetName']
+        #         assetObject.path = os.path.abspath(os.path.join(jobObject.path, "ASSETS", assetCategory, assetObject.label))
+        #         assetObject.job = jobObject.job
+        #         assetObject.type = 'asset'
+        #         assetObject.production = assetItem.assetData['assetProduction']
+        #         assetObject.prefix = assetType
+        #         assetObject.parent_uuid = jobEntityObject.uuid
+        #         if assetItem.assetData['assetThumbnail']:
+        #             assetObject.thumbnail = assetItem.assetData['assetThumbnail']
+        #         assetObject.created_by = currentUser.uuid
+        #         assetObject.save()
+        #         cometpublish.build_entity_directory(assetObject)
+        #
+        # # Create Sequence Objects
+        # for sequence, shots in sequencesForm.items():
+        #     sequenceObject = handler['entity'].objectPrototype()
+        #     sequenceObject._generate_id()
+        #     sequenceObject.created = datetime.datetime.now()
+        #     sequenceObject.modified = sequenceObject.created
+        #     sequenceObject.label = sequence.sequenceData['sequenceName']
+        #     sequenceObject.path = os.path.abspath(os.path.join(
+        #         jobObject.path, "PRODUCTION", sequenceObject.label))
+        #     sequenceObject.job = jobObject.job
+        #     sequenceObject.type = 'sequence'
+        #     sequenceObject.production = sequence.sequenceData['sequenceProduction']
+        #     sequenceObject.parent_uuid = jobEntityObject.uuid
+        #     sequenceObject.created_by = currentUser.uuid
+        #     sequenceObject.save()
+        #     cometpublish.build_entity_directory(sequenceObject)
+        #
+        #     # Create Shot Objects
+        #     for shot in shots:
+        #         shotObject = handler['entity'].objectPrototype()
+        #         shotObject._generate_id()
+        #         shotObject.created = datetime.datetime.now()
+        #         shotObject.modified = shotObject.created
+        #         shotObject.label = shot.shotData['shotName']
+        #         shotObject.path = os.path.abspath(os.path.join(
+        #             jobObject.path, "PRODUCTION", shotObject.label))
+        #         shotObject.job = jobObject.job
+        #         shotObject.type = 'shot'
+        #         shotObject.production = sequenceObject.production
+        #         shotObject.parent_uuid = sequenceObject.uuid
+        #         shotObject.created_by = currentUser.uuid
+        #         shotObject.save()
+        #         cometpublish.build_entity_directory(shotObject)
 
         self.setCursor(QtCore.Qt.ArrowCursor)
 

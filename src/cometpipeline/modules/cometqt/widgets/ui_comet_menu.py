@@ -1,6 +1,7 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
 from cometqt import util as cqtutil
+from cometqt.widgets.ui_job_combobox import JobComboBox
 from cometbrowser.ui.ui_create_project_window import CreateProjectWindow
 
 
@@ -69,7 +70,7 @@ class CometMenu(QtWidgets.QMenu):
         from cometbrowser.browser import ProjectBrowserMain
 
         top_window = cqtutil.get_top_window(self, ProjectBrowserMain)
-        top_window.doCloseBrowser()
+        top_window.close()
 
     def doCreateProject(self):
         from cometbrowser.browser import ProjectBrowserMain
@@ -78,30 +79,13 @@ class CometMenu(QtWidgets.QMenu):
         self.createProjectWindow.exec_()
 
     def doSwitchProject(self):
-        import mongorm
 
         diag = QtWidgets.QDialog()
         diag.setWindowTitle("Switch Project")
         lyt = QtWidgets.QVBoxLayout()
         diag.setLayout(lyt)
 
-        jobComboBox = QtWidgets.QComboBox()
-        handler = mongorm.getHandler()
-        filt = mongorm.getFilter()
-        filt.search(handler['job'])
-        jobs = handler['job'].all(filt)
-        jobs.sort(sort_field="label")
-
-        target_idx = 0
-        current_uuid = self.parent().browserMain.currentJob()
-        if current_uuid:
-            current_uuid = current_uuid.getUuid()
-        for idx, job in enumerate(jobs):
-            jobComboBox.addItem(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG), job.get("label"))
-            if job.getUuid() == current_uuid:
-                target_idx = idx
-
-        jobComboBox.setCurrentIndex(target_idx)
+        jobComboBox = JobComboBox(parent=self)
 
         btnBox = QtWidgets.QDialogButtonBox()
         createButton = QtWidgets.QPushButton("Switch")
@@ -115,11 +99,16 @@ class CometMenu(QtWidgets.QMenu):
         lyt.addWidget(jobComboBox)
         lyt.addWidget(btnBox)
 
+        diag.resize(300, 100)
+
         value = diag.exec_()
 
         if value == QtWidgets.QDialog.Accepted:
-            selectedJob = jobs[jobComboBox.currentIndex()]
+            selectedJob = jobComboBox.currentDataObject()
             self.parent().browserMain.setCurrentJob(selectedJob)
+
+    def doManageProject(self):
+        pass
 
 
 class CometMenuButton(QtWidgets.QFrame):

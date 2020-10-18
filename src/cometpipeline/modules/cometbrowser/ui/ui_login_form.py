@@ -7,9 +7,19 @@ import bcrypt
 
 class UiLoginForm(QtWidgets.QFrame):
     def __init__(self, parent=None):
-        super(UiLoginForm, self).__init__()
+        super(UiLoginForm, self).__init__(parent=parent)
+        self.setup_ui()
+        self.handle_signals()
+
+        self.error_widget = AnimatedPopupMessage(
+            message="Invalid Username / Password Combination",
+            type=AnimatedPopupMessage.ERROR,
+            parent=self,
+            width=self.parent().width(),
+        )
+
+    def setup_ui(self):
         self.settings = pqtutil.get_settings()
-        self.setParent(parent)
         self.mainLayout = QtWidgets.QVBoxLayout()
 
         self.setLayout(self.mainLayout)
@@ -120,15 +130,9 @@ class UiLoginForm(QtWidgets.QFrame):
         self.password_line.setStyleSheet(line_style)
         self.username_line.setStyleSheet(line_style)
 
+    def handle_signals(self):
         self.back_button.clicked.connect(lambda: self.parent().setCurrentIndex(0))
         self.login_button.clicked.connect(self.do_login)
-
-        self.error_widget = AnimatedPopupMessage(
-            message="Invalid Username / Password Combination",
-            type=AnimatedPopupMessage.ERROR,
-            parent=self,
-            width=self.parent().width(),
-        )
 
     def keyPressEvent(self, event):
         super(UiLoginForm, self).keyPressEvent(event)
@@ -161,7 +165,7 @@ class UiLoginForm(QtWidgets.QFrame):
         if not self.settings.value("login/remember_user") == "true":
             return False
 
-        if not self.settings.value("login/username") and self.settings.value("password"):
+        if not self.settings.value("login/username") and self.settings.value("login/password"):
             return False
 
         handler = mongorm.getHandler()
@@ -184,11 +188,36 @@ class UiLoginForm(QtWidgets.QFrame):
         return True
 
 
+class LoginFormDialog(QtWidgets.QDialog, UiLoginForm):
+    def __init__(self):
+        QtWidgets.QDialog.__init__(self)
+        self.setWindowTitle("Please login to continue")
+        self.resize(500, 250)
+        self.setup_ui()
+        self.back_button.setText("CLOSE")
+        self.handle_signals()
+
+        self.error_widget = AnimatedPopupMessage(
+            message="Invalid Username / Password Combination",
+            type=AnimatedPopupMessage.ERROR,
+            parent=self,
+            width=self.width(),
+        )
+
+    def handle_signals(self):
+        self.back_button.clicked.connect(self.reject)
+        self.login_button.clicked.connect(self.do_login)
+
+    def valid_login(self, dataObject):
+        self.writeSettings(dataObject)
+        self.accept()
+
+
 if __name__ == '__main__':
     import sys
     import qdarkstyle
     app = QtWidgets.QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
-    win = UiLoginForm()
+    win = LoginFormDialog()
     win.show()
     sys.exit(app.exec_())

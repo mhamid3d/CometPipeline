@@ -1,9 +1,7 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from cometbrowser.ui.ui_login_form import UiLoginForm
 from cometbrowser.ui.ui_register_form import UiRegisterForm
-from cometbrowser.browser import ProjectBrowserMain
 from pipeicon import icon_paths
-import qdarkstyle
 
 
 class HomePage(QtWidgets.QWidget):
@@ -184,10 +182,6 @@ class UiLoginWindow(QtWidgets.QWidget):
         self.login_popup = UiLoginPopup(self)
         self.mainLayout.addWidget(self.login_popup)
         self.setObjectName("UiLoginWindow")
-        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2() + """
-            QWidget#UiLoginWindow{
-                background-image: url("C:/Users/mhamid/Desktop/pipebackground.jpg");
-            }""")
 
     def redirect_login(self, userObject):
         self.bootstrap.browser_portal(userObject)

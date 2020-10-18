@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets, QtGui, QtCore
 from cometbrowser.ui.ui_login_window import UiLoginWindow
 from cometbrowser.browser import ProjectBrowserMain
 from cometqt import util as pqtutil
@@ -36,7 +36,7 @@ class ProjectBrowserBootstrap(object):
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    font = QtGui.QFont("Roboto")
+    font = QtGui.QFont("Ubuntu")
     font.setStyleHint(QtGui.QFont.Monospace)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
     app.setFont(font)

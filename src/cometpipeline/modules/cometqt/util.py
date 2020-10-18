@@ -35,7 +35,7 @@ def get_top_window(fromObject, topClass):
     while not isinstance(fromObject, topClass):
         fromObject = fromObject.parent()
 
-    assert isinstance(fromObject, topClass), "Could not find valid top window of instance {}. Got {} instead".format(str(topClass), str(w))
+    assert isinstance(fromObject, topClass), "Could not find valid top window of instance {}. Got {} instead".format(str(topClass), str(fromObject))
 
     return fromObject
 
@@ -59,6 +59,41 @@ class FlatIconButton(QtWidgets.QPushButton):
             }
         """ % (size / 2))
         self.setCursor(QtCore.Qt.PointingHandCursor)
+
+
+class FormVBoxLayout(QtWidgets.QVBoxLayout):
+    def __init__(self):
+        super(FormVBoxLayout, self).__init__()
+        self.setAlignment(QtCore.Qt.AlignTop)
+        self.setContentsMargins(9, 12, 9, 9)
+
+    def addRow(self, label, widget, tip=""):
+        text_template = """
+        <html>
+        <head/>
+            <body>
+                <p>
+                    <span>{0}</span>
+                    <span style=" font-size:8pt; color:#757575;">{1}</span>
+                </p>
+            </body>
+        </html>
+                """.format(label, tip)
+        label = QtWidgets.QLabel(text_template)
+        label.setTextFormat(QtCore.Qt.RichText)
+        label.setStyleSheet("""
+            QLabel{
+                color: #a6a6a6;
+            }
+        """)
+        label.setAlignment(QtCore.Qt.AlignLeft)
+        label.setIndent(0)
+        layout = QtWidgets.QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignLeft)
+        layout.addWidget(label)
+        layout.addWidget(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.addLayout(layout)
 
 
 class FlowLayout(QtWidgets.QLayout):
@@ -155,3 +190,7 @@ class FlowLayout(QtWidgets.QLayout):
         return y + lineHeight - rect.y()
 
 
+def doLoginConfirm():
+    from cometbrowser.ui.ui_login_form import LoginFormDialog
+    diag = LoginFormDialog()
+    return diag.exec_()

@@ -1,8 +1,8 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from cometqt.widgets.ui_search_bar import UiSearchBar
+from cometqt.widgets.ui_job_combobox import JobComboBox
 from cometqt import util as cqtutil
-from pipeicon import icon_paths
-from cometpipe.core import ASSET_PREFIX_DICT
+from pipeicon import icon_paths, util as iconutil
 import mongorm
 import os
 
@@ -190,16 +190,34 @@ class EntityViewer(QtWidgets.QWidget):
         self.topLabelLayout.setAlignment(QtCore.Qt.AlignLeft)
         self.topSearchLayout = QtWidgets.QHBoxLayout()
 
-        self.topLabel = QtWidgets.QLabel("Entities")
-        self.topLabel.setIndent(0)
-        self.topLabel.setAlignment(QtCore.Qt.AlignLeft)
-        self.topLabel.setStyleSheet("""
+        self.jobSelectWidget = QtWidgets.QWidget()
+        self.jobSelectLayout = QtWidgets.QVBoxLayout()
+        self.jobSelectWidget.setLayout(self.jobSelectLayout)
+        self.jobSelectWidget.setContentsMargins(0, 0, 0, 0)
+        self.jobSelectLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout.addWidget(self.jobSelectWidget)
+
+        jobLabel = QtWidgets.QLabel("Job")
+        jobLabel.setIndent(0)
+        jobLabel.setAlignment(QtCore.Qt.AlignLeft)
+        jobLabel.setStyleSheet("""
             QLabel{
                 background: none;
                 color: #a6a6a6;
                 font-size: 20px;
             }
         """)
+
+        self.jobComboBox = JobComboBox(parent=self)
+
+        self.jobSelectLayout.addWidget(jobLabel)
+        self.jobSelectLayout.addWidget(self.jobComboBox)
+        self.jobSelectLayout.addWidget(cqtutil.h_line())
+
+        self.topLabel = QtWidgets.QLabel("Entities")
+        self.topLabel.setIndent(0)
+        self.topLabel.setAlignment(QtCore.Qt.AlignLeft)
+        self.topLabel.setStyleSheet(jobLabel.styleSheet())
 
         self.refreshButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_RELOAD_LRG)
         self.filterButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_FILTER_LRG)
@@ -219,6 +237,9 @@ class EntityViewer(QtWidgets.QWidget):
         self.refreshButton.clicked.connect(self.populate)
         self.productionButton.clicked.connect(lambda: self.setEntityType(self.TYPE_PRODUCTION))
         self.assetsButton.clicked.connect(lambda: self.setEntityType(self.TYPE_ASSETS))
+        self.jobComboBox.currentIndexChanged.connect(lambda: self.setCurrentJob(
+            self.jobComboBox.currentDataObject()
+        ))
 
         self.mainLayout.addLayout(self.topLabelLayout)
         self.topLabelLayout.addWidget(self.topLabel)
@@ -230,10 +251,8 @@ class EntityViewer(QtWidgets.QWidget):
         self.topSearchLayout.addWidget(self.filterButton)
         self.mainLayout.addWidget(cqtutil.h_line())
         self.mainLayout.addWidget(self.entityTree)
-        # self.mainLayout.addWidget(cqtutil.h_line())
 
         self._currentJob = None
-        self._isDialog = False
         self.setIsDialog(False)
         self._entityType = self.TYPE_DEFAULT
 
@@ -242,7 +261,8 @@ class EntityViewer(QtWidgets.QWidget):
         return self._entityType
 
     def setEntityType(self, entityType):
-        assert entityType in [self.TYPE_ASSETS, self.TYPE_PRODUCTION], "Invalid entity type"
+        if entityType:
+            assert entityType in [self.TYPE_ASSETS, self.TYPE_PRODUCTION], "Invalid entity type: {}".format(entityType)
 
         self._entityType = entityType
         if self._entityType == self.TYPE_ASSETS:
@@ -267,6 +287,9 @@ class EntityViewer(QtWidgets.QWidget):
 
     def setCurrentJob(self, jobObject):
         self._currentJob = jobObject
+        self.jobComboBox.blockSignals(True)
+        self.jobComboBox.setIndexFromDataObject(self._currentJob)
+        self.jobComboBox.blockSignals(False)
         self.populate()
 
     def currentJob(self):
@@ -274,6 +297,10 @@ class EntityViewer(QtWidgets.QWidget):
 
     def setIsDialog(self, bool):
         self._isDialog = bool
+        if self._isDialog:
+            self.jobSelectWidget.show()
+        else:
+            self.jobSelectWidget.hide()
 
     def isDialog(self):
         return self._isDialog
@@ -295,51 +322,33 @@ class EntityViewer(QtWidgets.QWidget):
 
             jobRootItem = QtWidgets.QTreeWidgetItem(self.entityTree)
             jobRootItem.setText(0, jobEntityObject.get("label"))
-            jobRootItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
+            jobRootItem.setIcon(0, QtGui.QIcon(iconutil.entityIcon(jobEntityObject)))
             jobRootItem.dataObject = jobEntityObject
 
-            if self._entityType == self.TYPE_ASSETS:
-                filter.search(handler['entity'], job=jobObject.job, type='asset')
-                all_assets = handler['entity'].all(filter)
-
-                for catFull, cat in ASSET_PREFIX_DICT.items():
-
-                    catItem = QtWidgets.QTreeWidgetItem(jobRootItem)
-                    catItem.setText(0, catFull)
-                    catItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSETGROUP_LRG))
-                    catItem.setFlags(QtCore.Qt.ItemIsEnabled)
-
-                    for asset in all_assets:
-                        if asset.get("prefix") == cat:
-                            asset_item = QtWidgets.QTreeWidgetItem(catItem)
-                            asset_item.setText(0, asset.get("label"))
-                            asset_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
-                            asset_item.dataObject = asset
-
-            elif self._entityType == self.TYPE_PRODUCTION:
-                filter.search(handler['entity'], job=jobObject.job, type='sequence')
-                all_sequences = handler['entity'].all(filter)
-                filter.clear()
-                filter.search(handler['entity'], job=jobObject.job, type='shot')
-                all_shots = handler['entity'].all(filter)
-
-                for sequence in all_sequences:
-
-                    seq_item = QtWidgets.QTreeWidgetItem(jobRootItem)
-                    seq_item.setText(0, sequence.get("label"))
-                    seq_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
-                    seq_item.dataObject = sequence
-
-                    for shot in all_shots:
-                        if shot.get("parent_uuid") == sequence.uuid:
-                            shot_item = QtWidgets.QTreeWidgetItem(seq_item)
-                            shot_item.setText(0, shot.get("label"))
-                            shot_item.setIcon(0, QtGui.QIcon(icon_paths.ICON_SHOT_LRG))
-                            shot_item.dataObject = shot
+            self.recursive_populate(jobRootItem)
 
         self.doSearch()
         self.entityTree.expandAll()
         QtWidgets.QApplication.restoreOverrideCursor()
+
+    def recursive_populate(self, rootTreeItem):
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        rootDataObject = rootTreeItem.dataObject
+        if self._entityType == self.TYPE_ASSETS:
+            filt.search(handler['entity'], job=rootDataObject.job, type="asset",
+                        parent_uuid=rootDataObject.getUuid())
+        elif self._entityType == self.TYPE_PRODUCTION:
+            filt.search(handler['entity'], job=rootDataObject.job, type__ne="asset",
+                        parent_uuid=rootDataObject.getUuid())
+        children = handler['entity'].all(filt)
+        if children:
+            for child in children:
+                item = QtWidgets.QTreeWidgetItem(rootTreeItem)
+                item.setText(0, child.get("label"))
+                item.setIcon(0, QtGui.QIcon(iconutil.entityIcon(child)))
+                item.dataObject = child
+                self.recursive_populate(item)
 
     def doSearch(self):
         currentText = self.searchBar.text()
@@ -366,16 +375,9 @@ class EntityPickerDialog(QtWidgets.QDialog):
         super(EntityPickerDialog, self).__init__()
         self.setWindowTitle("Set Entity")
         self._setEnvOnClose = setEnvOnClose
-        handler = mongorm.getHandler()
-        filt = mongorm.getFilter()
-        # TODO
-        filt.search(handler['job'], label="DELOREAN")
-        job = handler['job'].one(filt)
         self.entityViewer = EntityViewer()
         self.entityViewer.setContentsMargins(0, 0, 0, 0)
-        self.entityViewer.setCurrentJob(job)
         self.entityViewer.setIsDialog(True)
-        self.entityViewer.populate()
 
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.setLayout(self.mainLayout)
@@ -389,25 +391,42 @@ class EntityPickerDialog(QtWidgets.QDialog):
         self.diagButtonBox.accepted.connect(self.accept)
         self.diagButtonBox.rejected.connect(self.reject)
 
-        self.loadCurrent()
+        self.load_previous()
 
-    def loadCurrent(self):
-        return
+    def load_previous(self):
 
-        entity = os.getenv("ENTITY")
+        jobEnv = os.getenv("SHOW")
+        entityEnv = os.getenv("SHOT")
         handler = mongorm.getHandler()
-
         filt = mongorm.getFilter()
-        filt.search(handler['entity'], job=os.getenv("JOB"), label=entity)
+        filt.search(handler['entity'], job=jobEnv, label=entityEnv)
 
+        entityObject = handler['entity'].one(filt)
+        filt.clear()
 
-        if etype:
-            self.entityViewer.setEntityType(etype)
-        if entity:
-            for item in self.entityViewer.getAllItems():
-                if item.text(0) == entity:
-                    self.entityViewer.entityTree.setCurrentItem(item)
-                    break
+        filt.search(handler['job'], label=jobEnv)
+        jobObject = handler['job'].one(filt)
+        filt.clear()
+
+        if not jobObject:
+            return
+
+        self.entityViewer.setCurrentJob(jobObject)
+
+        if not entityObject:
+            return
+
+        entityType = entityObject.get("type")
+
+        if entityType == "shot" or entityType == "sequence" or entityType == "job":
+            self.entityViewer.setEntityType(self.entityViewer.TYPE_PRODUCTION)
+        elif entityType == "asset":
+            self.entityViewer.setEntityType(self.entityViewer.TYPE_ASSETS)
+
+        for item in self.entityViewer.getAllItems():
+            if item.text(0) == entityObject.get("label"):
+                self.entityViewer.entityTree.setCurrentItem(item)
+                break
 
     def getSelection(self):
         return self.entityViewer.entityTree.selectedItems()

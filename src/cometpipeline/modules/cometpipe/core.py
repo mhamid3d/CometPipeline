@@ -1,12 +1,12 @@
-ASSET_PREFIX_DICT = {
-    'Character': 'char',
-    'Crowd': 'crowd',
-    'Environment': 'environ',
-    'FX': 'fx',
-    'Prop': 'prop',
-    'Vehicle': 'vehcl',
-    'Utility': 'util'
-}
+DEFAULT_ROOT_ENTITIES = [
+    'char',
+    'crowd',
+    'environ',
+    'fx',
+    'prop',
+    'vehicle',
+    'utility'
+]
 
 PACKAGE_TYPES = {
     'APKG': 'Animation Package',

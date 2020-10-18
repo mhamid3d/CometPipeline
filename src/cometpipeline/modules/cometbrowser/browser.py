@@ -59,6 +59,7 @@ class ProjectBrowserMain(BaseMainWindow):
     def setCurrentJob(self, jobObject):
         if jobObject:
             assert self._currentUser.uuid in jobObject.allowed_users, "Insufficient permissions to access this job: {}".format(jobObject.label)
+            os.environ['SHOW'] = jobObject.get("label")
 
         self._currentJob = jobObject
 
@@ -67,7 +68,6 @@ class ProjectBrowserMain(BaseMainWindow):
         self.settings.endGroup()
 
         self.jobChanged.emit(self._currentJob)
-        os.environ['SHOW'] = self._currentJob.get("label")
 
     def currentJob(self):
         return self._currentJob
@@ -101,7 +101,6 @@ class ProjectBrowserMain(BaseMainWindow):
     def handle_signals(self):
         self.jobChanged.connect(self.top_interface_bar.cometButton.setProjectLabel)
         self.jobChanged.connect(self.productionPage.entityViewer.setCurrentJob)
-
         self.top_interface_bar.typeButtonGroup.buttonClicked.connect(self.setPageFromCurrentButton)
         self.stack_main.currentChanged.connect(self.setButtonFromCurrentPage)
 
@@ -113,9 +112,17 @@ class ProjectBrowserMain(BaseMainWindow):
         idx = self.top_interface_bar.typeButtonGroup.checkedId()
         self.stack_main.setCurrentIndex(idx)
 
+    def closeEvent(self, event):
+        self.doCloseBrowser()
+        super(ProjectBrowserMain, self).closeEvent(event)
+
     def doCloseBrowser(self):
         self.saveSettings()
-        self.close()
+
+        notificationThread = self.top_interface_bar.notificationButton.notificationThread
+        notificationReceived = self.top_interface_bar.notificationButton.notificationReceived
+        notificationThread.notificationReceived.disconnect(notificationReceived)
+        notificationThread.quit()
 
     def saveSettings(self):
         self.settings.beginGroup("project")

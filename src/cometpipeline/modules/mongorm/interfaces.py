@@ -88,7 +88,6 @@ class Entity(DataObject, mongoengine.Document):
     parent_uuid = mongoengine.StringField(dispName="Parent UUID")
 
     # Optional fields
-    prefix = mongoengine.StringField(dispName="Prefix")  # eg: 'char', 'environ', 'vehicle', etc
     framerange = mongoengine.ListField(dispName="Frame Range")
     thumbnail = mongoengine.StringField(dispName="Thumbnail", icon=icon_paths.ICON_IMAGE_SML)
 
@@ -129,6 +128,10 @@ class Entity(DataObject, mongoengine.Document):
                 return siblings
         else:
             return None
+
+    def getEntityPath(self):
+        #TODO:
+        pass
 
 
 class Package(DataObject, mongoengine.Document):

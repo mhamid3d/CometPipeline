@@ -1,16 +1,12 @@
-from cometpipe.core import ASSET_PREFIX_DICT
 from cometpublish.util import rec_build
 import os
 
 ENTITY_TEMPLATE_STRUCTURE = {
-    'EDITORIAL': {'GRADING': {}},
-    'MOVIE': {},
-    'PUBLISH': {},
-    'REF': {},
-    'SOURCE': {},
-    'THUMBNAIL': {},
+    '_publish': {},
+    '_ref': {},
+    '_thumbnail': {},
     # TODO: each app should have a predefined structure, in another python module
-    'WORK': {
+    '_work': {
         'houdini': {},
         'katana': {},
         'maya': {},
@@ -24,10 +20,10 @@ ENTITY_TEMPLATE_STRUCTURE = {
 
 
 JOB_TEMPLATE_STRUCTURE = {
-    'ASSETS': {cat: {} for cat in ASSET_PREFIX_DICT.keys()},
-    'EDITORIAL': {'GRADING': {}},
-    'PRODUCTION': {},
-    'REF': {'OCIO': {}}
+    'assets': {},
+    'editorial': {'grading': {}},
+    'production': {},
+    'ref': {'ocio': {}}
 }
 
 
