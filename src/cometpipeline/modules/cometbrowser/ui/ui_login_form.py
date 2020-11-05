@@ -155,7 +155,7 @@ class UiLoginForm(QtWidgets.QFrame):
 
     def writeSettings(self, dataObject):
         self.settings.beginGroup("login")
-        self.settings.setValue("remember_user", self.remember_check.isChecked())
+        self.settings.setValue("remember_user", "true" if self.remember_check.isChecked() else "false")
         self.settings.setValue("username", dataObject.get("username"))
         self.settings.setValue("email", dataObject.get("email"))
         self.settings.setValue("password", dataObject.get("password"))
@@ -178,7 +178,6 @@ class UiLoginForm(QtWidgets.QFrame):
 
         if not user_object.get("email") == self.settings.value("login/email"):
             return False
-
         return self.valid_login(user_object)
 
     def valid_login(self, dataObject):

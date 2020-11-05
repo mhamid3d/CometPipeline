@@ -1,12 +1,16 @@
 from cometpublish.util import rec_build
 import os
 
+PUBLISH_DIR_NAME = "_publish"
+THUMBNAIL_DIR_NAME = "_thumbnail"
+WORKING_DIR_NAME = "_work"
+
 ENTITY_TEMPLATE_STRUCTURE = {
-    '_publish': {},
+    PUBLISH_DIR_NAME: {},
     '_ref': {},
-    '_thumbnail': {},
+    THUMBNAIL_DIR_NAME: {},
     # TODO: each app should have a predefined structure, in another python module
-    '_work': {
+    WORKING_DIR_NAME: {
         'houdini': {},
         'katana': {},
         'maya': {},
@@ -49,3 +53,20 @@ def build_entity_directory(entityObject):
     # Build from template
     for dir, subDirs in ENTITY_TEMPLATE_STRUCTURE.items():
         rec_build(os.path.join(entityPath, dir), subDirs)
+
+
+def build_package_directory(packageObject):
+    assert not os.path.exists(packageObject.get("path")), "Package directory already exists"
+
+    packagePath = os.path.abspath(packageObject.get("path"))
+    packageTypePath = os.path.abspath(os.path.join(packagePath, os.pardir))
+    if not os.path.exists(packageTypePath):
+        os.mkdir(packageTypePath)
+
+    os.mkdir(packagePath)
+
+
+def build_version_directory(versionObject):
+    assert not os.path.exists(versionObject.get("path")), "Version directory already exists"
+
+    os.mkdir(os.path.abspath(versionObject.get("path")))

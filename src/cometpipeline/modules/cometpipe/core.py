@@ -9,7 +9,7 @@ DEFAULT_ROOT_ENTITIES = [
 ]
 
 PACKAGE_TYPES = {
-    'APKG': 'Animation Package',
+    'APKG': 'Asset Package',
     'CACHE': 'Geometry Cache',
     'CGR': 'CG Render',
     'EDIT': 'Editing',

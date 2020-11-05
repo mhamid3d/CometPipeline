@@ -30,41 +30,6 @@ class ValidationLineEdit(QtWidgets.QLineEdit):
         self.setPlaceholderText(type)
 
 
-class CustomVBoxLayout(QtWidgets.QVBoxLayout):
-    def __init__(self):
-        super(CustomVBoxLayout, self).__init__()
-        self.setAlignment(QtCore.Qt.AlignTop)
-        self.setContentsMargins(9, 12, 9, 9)
-
-    def addRow(self, label, widget, tip=""):
-        text_template = """
-        <html>
-        <head/>
-            <body>
-                <p>
-                    <span>{0}</span>
-                    <span style=" font-size:8pt; color:#757575;">{1}</span>
-                </p>
-            </body>
-        </html>
-                """.format(label, tip)
-        label = QtWidgets.QLabel(text_template)
-        label.setTextFormat(QtCore.Qt.RichText)
-        label.setStyleSheet("""
-            QLabel{
-                color: #a6a6a6;
-            }
-        """)
-        label.setAlignment(QtCore.Qt.AlignLeft)
-        label.setIndent(0)
-        layout = QtWidgets.QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignLeft)
-        layout.addWidget(label)
-        layout.addWidget(widget)
-        layout.setContentsMargins(9, 9, 9, 10)
-        self.addLayout(layout)
-
-
 class PageButton(QtWidgets.QPushButton):
     def __init__(self, *args, **kwargs):
         super(PageButton, self).__init__(*args, **kwargs)
@@ -100,7 +65,7 @@ class InitialForm(QtWidgets.QFrame):
         self._isValid = False
         self.validationData = {}
 
-        self.formLayout = CustomVBoxLayout()
+        self.formLayout = cqtutil.FormVBoxLayout()
         self.mainLayout.addLayout(self.formLayout)
 
         # Full Title
@@ -114,9 +79,7 @@ class InitialForm(QtWidgets.QFrame):
         self.projectAliasLine.setValidator(self.aliasValidator)
 
         # Resolution
-        self.resolutionFrame = QtWidgets.QFrame()
         self.resolutionLayout = QtWidgets.QHBoxLayout()
-        self.resolutionFrame.setLayout(self.resolutionLayout)
         self.xResSpin = QtWidgets.QSpinBox()
         self.yResSpin = QtWidgets.QSpinBox()
         self.aspectSpin = QtWidgets.QDoubleSpinBox()
@@ -135,13 +98,6 @@ class InitialForm(QtWidgets.QFrame):
         self.resolutionLayout.addWidget(self.xResSpin)
         self.resolutionLayout.addWidget(self.yResSpin)
         self.resolutionLayout.addWidget(self.aspectSpin)
-        self.resolutionFrame.setStyleSheet("""
-            QFrame{
-                background: none;
-                border: none;
-            }
-        """)
-        self.resolutionFrame.setContentsMargins(0, 0, 0, 0)
         self.resolutionLayout.setContentsMargins(0, 0, 0, 0)
         spinStyle = """
             QSpinBox,
@@ -260,7 +216,7 @@ class InitialForm(QtWidgets.QFrame):
         self.formLayout.addRow("ALIAS", self.projectAliasLine, tip="Project code that will be used for all of production. Keep it simple and short.")
         self.formLayout.addRow("DIRECTORY", self.directoryFrame)
         self.formLayout.addRow("COLOR SPACE CONFIG", self.colorSpaceFrame, tip="Config will be cloned to project directory.")
-        self.formLayout.addRow("RESOLUTION", self.resolutionFrame)
+        self.formLayout.addRow("RESOLUTION", self.resolutionLayout)
         self.formLayout.addRow("CREATE DEFAULT ASSETS", self.createDefaultAssetsCheck)
 
         self.closeButton = QtWidgets.QPushButton("CLOSE")
@@ -352,8 +308,17 @@ class InitialForm(QtWidgets.QFrame):
         resolution = [self.xResSpin.value(), self.yResSpin.value(), self.aspectSpin.value()]
         createDefaultAssets = self.createDefaultAssetsCheck.isChecked()
 
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(handler['job'], label=alias)
+        jobObject = handler['job'].one(filt)
+
         if not fullTitle or len(fullTitle) < 2:
             self.error_widget.setMessage("Full Title of project is required")
+            self.error_widget.do_anim()
+            return
+        elif jobObject:
+            self.error_widget.setMessage("Job '{}', already exists".format(alias))
             self.error_widget.do_anim()
             return
         elif not alias or len(alias) < 3:
@@ -385,588 +350,6 @@ class InitialForm(QtWidgets.QFrame):
         self.parent().setCurrentIndex(self.parent().currentIndex() + 1)
 
 
-class AssetsForm(QtWidgets.QFrame):
-    def __init__(self, parent=None):
-        super(AssetsForm, self).__init__(parent=parent)
-        self.mainLayout = QtWidgets.QVBoxLayout()
-        self.setLayout(self.mainLayout)
-        self.mainHLayout = QtWidgets.QHBoxLayout()
-        self.mainLayout.addLayout(self.mainHLayout)
-        self.formLayout = CustomVBoxLayout()
-        self.mainHLayout.addLayout(self.formLayout)
-        self.treeLayout = QtWidgets.QVBoxLayout()
-        self.mainHLayout.addLayout(self.treeLayout)
-
-        self._isValid = False
-        self.validationData = {}
-
-        self.assetTree = QtWidgets.QTreeWidget()
-        self.assetTree.setHeaderLabels(['Assets'])
-        self.assetTree.setIconSize(QtCore.QSize(24, 24))
-        self.assetTree.setStyleSheet("""
-            QTreeView{
-                border-radius: 0px;
-            }
-        """)
-        self.removeButton = QtWidgets.QPushButton("Remove Selection")
-        self.removeButton.setFixedHeight(42)
-        self.removeButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.removeButton.clicked.connect(self.remove_asset)
-        self.removeButton.setStyleSheet("""
-            QPushButton{
-                background: #148CD2;
-                border: none;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                border: 1px solid #D9D9D9;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.treeLayout.addWidget(self.assetTree)
-        self.treeLayout.addWidget(self.removeButton)
-
-        self.nameLine = ValidationLineEdit("Marty")
-
-        self.productionCheckBox = QtWidgets.QCheckBox()
-        self.productionCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
-        self.productionCheckBox.setStyleSheet("""
-            QCheckBox::indicator{
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                padding: 2px;
-            }
-            QCheckBox::indicator:hover{
-                border: 1px solid white;
-            }
-            QCheckBox::indicator:checked{
-                background: #148CD2;
-                border: 1px solid #148CD2;
-                image: url(%s);
-            }
-            QCheckBox::indicator:unchecked{
-                background: none;
-                image: none;
-            }
-        """ % icon_paths.ICON_TICK_SML)
-
-        self.thumbnailFrame = QtWidgets.QFrame()
-        self.thumbnailLayout = QtWidgets.QHBoxLayout()
-        self.thumbnailLayout.setContentsMargins(0, 0, 0, 0)
-        self.thumbnailFrame.setLayout(self.thumbnailLayout)
-        self.thumbnailLine = ValidationLineEdit("")
-        self.thumbnailLine.setReadOnly(True)
-        self.thumbnailBrowse = QtWidgets.QPushButton("Browse")
-        self.thumbnailBrowse.setFixedHeight(42)
-        self.thumbnailLayout.addWidget(self.thumbnailLine)
-        self.thumbnailLayout.addWidget(self.thumbnailBrowse)
-        self.thumbnailBrowse.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.thumbnailBrowse.setCursor(QtCore.Qt.PointingHandCursor)
-        self.thumbnailFrame.setStyleSheet("""
-            QFrame{
-                border: none;
-                background: none;
-            }
-        """)
-        self.thumbnailFileDialog = QtWidgets.QFileDialog()
-        self.thumbnailBrowse.clicked.connect(self.thumbnail_browse)
-
-        self.addButton = QtWidgets.QPushButton("ADD")
-        self.addButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.addButton.setFixedSize(84, 42)
-        self.addButton.setStyleSheet("""
-            QPushButton{
-                background: #148CD2;
-                border: none;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                border: 1px solid #D9D9D9;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.addButton.clicked.connect(self.add_asset)
-
-        self.formLayout.addRow("NAME", self.nameLine)
-        self.formLayout.addRow("IS THIS ASSET FOR TESTING / RND ?", self.productionCheckBox)
-        self.formLayout.addRow("THUMBNAIL", self.thumbnailFrame, tip="You can change this later.")
-        self.formLayout.addRow("", self.addButton)
-
-        self.backButton = QtWidgets.QPushButton("BACK")
-        self.skipButton = QtWidgets.QPushButton("SKIP")
-        self.nextButton = QtWidgets.QPushButton("NEXT")
-        self.backButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.skipButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.nextButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.backButton.setFixedSize(84, 42)
-        self.skipButton.setFixedSize(84, 42)
-        self.nextButton.setFixedSize(84, 42)
-        self.backButton.clicked.connect(lambda: self.parent().setCurrentIndex(self.parent().currentIndex() - 1))
-        self.skipButton.clicked.connect(self.validate_page)
-        self.nextButton.clicked.connect(self.validate_page)
-
-        self.backButton.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.skipButton.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.nextButton.setStyleSheet("""
-            QPushButton{
-                background: #148CD2;
-                border: none;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                border: 1px solid #D9D9D9;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-
-        self.v_spacer = QtWidgets.QSpacerItem(40, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        self.mainLayout.addItem(self.v_spacer)
-
-        self.bottomButtonsLayout = QtWidgets.QHBoxLayout()
-        self.bottomButtonsLayout.setAlignment(QtCore.Qt.AlignRight)
-        self.mainLayout.addLayout(self.bottomButtonsLayout)
-        self.bottomButtonsLayout.addWidget(self.skipButton)
-        self.bottomButtonsLayout.addWidget(self.backButton)
-        self.bottomButtonsLayout.addWidget(self.nextButton)
-
-    def thumbnail_browse(self):
-        text = self.thumbnailFileDialog.getOpenFileName(parent=self, caption='Choose Asset Thumbnail', filter="Image Files (*.jpg *.jpeg *.png)")
-        if text and text[0]:
-            self.thumbnailLine.setText(str(text[0]))
-            self.thumbnailFileDialog.setDirectory(os.path.abspath(os.path.join(str(text[0]), os.pardir)))
-
-    def add_asset(self):
-        assetName = self.nameLine.text()
-        assetProduction = not self.productionCheckBox.isChecked()
-        assetThumbnail = self.thumbnailLine.text()
-        assetThumbnail = assetThumbnail if assetThumbnail else None
-
-        parentItem = self.assetTree.currentItem() if self.assetTree.currentItem() else self.assetTree
-
-        if not self.nameLine.text():
-            try:
-                self.emptyNameError.deleteLater()
-            except:
-                pass
-            self.emptyNameError = AnimatedPopupMessage(message="Name field required", type=AnimatedPopupMessage.ERROR,
-                                      parent=self.parent(), width=self.parent().width())
-            self.emptyNameError.do_anim()
-            return False
-
-        existingSiblings = []
-
-        if isinstance(parentItem, QtWidgets.QTreeWidget):
-            for i in range(parentItem.topLevelItemCount()):
-                existingSiblings.append(parentItem.topLevelItem(i))
-        else:
-            for i in range(parentItem.childCount()):
-                existingSiblings.append(parentItem.child(i))
-
-        if existingSiblings:
-            if assetName in [sib.text(0) for sib in existingSiblings]:
-                try:
-                    self.itemExistsError.deleteLater()
-                except:
-                    pass
-                parentName = '/' if isinstance(parentItem, QtWidgets.QTreeWidget) else parentItem.text(0)
-                self.itemExistsError = AnimatedPopupMessage(
-                    message="Asset with name '{}' and parent '{}' already exists".format(assetName, parentName),
-                    type=AnimatedPopupMessage.ERROR,
-                    parent=self.parent(),
-                    width=self.parent().width()
-                )
-                self.itemExistsError.do_anim()
-                return False
-
-        assetItem = QtWidgets.QTreeWidgetItem(parentItem)
-        assetItem.setText(0, assetName)
-        assetItem.setIcon(0, QtGui.QIcon(assetThumbnail if assetThumbnail else icon_paths.ICON_ASSET_LRG))
-        assetItem.assetData = {
-            'assetName': assetName,
-            'assetProduction': assetProduction,
-            'assetThumbnail': assetThumbnail,
-        }
-
-        self.assetTree.expandAll()
-
-    def remove_asset(self):
-        selected_items = self.assetTree.selectedItems()
-        for item in selected_items:
-            par = item.parent()
-            if par:
-                par.takeChild(par.indexOfChild(item))
-
-    @property
-    def isValid(self):
-        return self._isValid
-
-    @isValid.setter
-    def isValid(self, value):
-        self._isValid = value
-        button = self.parent().parent().button_group.button(self.parent().currentIndex())
-        if value:
-            button.setIcon(
-                QtGui.QIcon(icon_paths.ICON_CHECKGREEN_BORDERLESS_LRG))
-        else:
-            button.setIcon(QtGui.QIcon())
-
-    def validate_page(self):
-        self.isValid = True
-
-        for cat in [self.assetTree.topLevelItem(i) for i in range(self.assetTree.topLevelItemCount())]:
-            catText = cat.text(0)
-            catCount = cat.childCount()
-            if catCount is not 0:
-                self.validationData[catText] = [cat.child(i) for i in range(catCount)]
-
-        self.parent().setCurrentIndex(self.parent().currentIndex() + 1)
-
-
-class SequencesForm(QtWidgets.QFrame):
-    def __init__(self, parent=None):
-        super(SequencesForm, self).__init__(parent=parent)
-        self.mainLayout = QtWidgets.QVBoxLayout()
-        self.setLayout(self.mainLayout)
-        self.mainHLayout = QtWidgets.QHBoxLayout()
-        self.mainLayout.addLayout(self.mainHLayout)
-        self.formLayout = CustomVBoxLayout()
-        self.mainHLayout.addLayout(self.formLayout)
-        self.treeLayout = QtWidgets.QVBoxLayout()
-        self.mainHLayout.addLayout(self.treeLayout)
-
-        self._isValid = False
-        self.validationData = {}
-
-        self.sequenceTree = QtWidgets.QTreeWidget()
-        self.sequenceTree.setHeaderLabels(['Sequences'])
-        self.sequenceTree.setIconSize(QtCore.QSize(24, 24))
-        self.sequenceTree.setSortingEnabled(True)
-        self.sequenceTree.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
-        self.sequenceTree.setStyleSheet("""
-            QTreeView{
-                border-radius: 0px;
-            }
-        """)
-        self.removeButton = QtWidgets.QPushButton("Remove Selection")
-        self.removeButton.setFixedHeight(42)
-        self.removeButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.removeButton.clicked.connect(self.remove_sequence)
-        self.removeButton.setStyleSheet("""
-            QPushButton{
-                background: #148CD2;
-                border: none;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                border: 1px solid #D9D9D9;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.treeLayout.addWidget(self.sequenceTree)
-        self.treeLayout.addWidget(self.removeButton)
-
-        self.nameLine = ValidationLineEdit("LTK")
-
-        # Shots
-        self.shotsFrame = QtWidgets.QFrame()
-        self.shotsLayout = QtWidgets.QHBoxLayout()
-        self.shotsFrame.setLayout(self.shotsLayout)
-        self.beginRangeSpin = QtWidgets.QSpinBox()
-        self.endRangeSpin = QtWidgets.QSpinBox()
-        self.incrementSpin = QtWidgets.QSpinBox()
-        self.beginRangeSpin.setMinimum(0)
-        self.endRangeSpin.setMinimum(0)
-        self.beginRangeSpin.setMaximum(99999)
-        self.endRangeSpin.setMaximum(99999)
-        self.beginRangeSpin.setValue(0)
-        self.endRangeSpin.setValue(0)
-        self.incrementSpin.setMinimum(0)
-        self.incrementSpin.setMaximum(99999)
-        self.incrementSpin.setValue(0)
-        self.shotsLayout.addWidget(self.beginRangeSpin)
-        self.shotsLayout.addWidget(self.endRangeSpin)
-        self.shotsLayout.addWidget(self.incrementSpin)
-        self.shotsFrame.setStyleSheet("""
-            QFrame{
-                background: none;
-                border: none;
-            }
-        """)
-        self.shotsFrame.setContentsMargins(0, 0, 0, 0)
-        self.shotsLayout.setContentsMargins(0, 0, 0, 0)
-        spinStyle = """
-            QSpinBox,
-            QDoubleSpinBox{
-                border-radius: 0px;
-                background: background;
-            }
-        """
-        self.beginRangeSpin.setStyleSheet(spinStyle)
-        self.endRangeSpin.setStyleSheet(spinStyle)
-        self.incrementSpin.setStyleSheet(spinStyle)
-        self.beginRangeSpin.setFixedHeight(42)
-        self.endRangeSpin.setFixedHeight(42)
-        self.incrementSpin.setFixedHeight(42)
-
-        self.productionCheckBox = QtWidgets.QCheckBox()
-        self.productionCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
-
-        self.underscoreCheckBox = QtWidgets.QCheckBox()
-        self.underscoreCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
-
-        self.paddingCheckBox = QtWidgets.QCheckBox()
-        self.paddingCheckBox.setChecked(True)
-        self.paddingCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
-
-        self.addSeqStrCheckBox = QtWidgets.QCheckBox()
-        self.addSeqStrCheckBox.setChecked(True)
-        self.addSeqStrCheckBox.setCursor(QtCore.Qt.PointingHandCursor)
-
-        self.addButton = QtWidgets.QPushButton("ADD")
-        self.addButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.addButton.setFixedSize(84, 42)
-        self.addButton.setStyleSheet("""
-            QPushButton{
-                background: #148CD2;
-                border: none;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                border: 1px solid #D9D9D9;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.addButton.clicked.connect(self.add_sequence)
-
-        self.formLayout.addRow("NAME", self.nameLine)
-        self.formLayout.addRow("SHOTS", self.shotsFrame, tip="Begin, End, Increment")
-        self.formLayout.addRow("SHOT NUMBER PADDING 4X", self.paddingCheckBox, tip="LTK0010")
-        self.formLayout.addRow("ADD '_seq' suffix to sequence", self.addSeqStrCheckBox, tip="LTK_seq")
-        self.formLayout.addRow("INCLUDE UNDERSCORE IN SHOT", self.underscoreCheckBox, tip="LTK_0010")
-        self.formLayout.addRow("IS THIS SEQUENCE FOR TESTING / RND ?", self.productionCheckBox)
-        self.formLayout.addRow("", self.addButton)
-
-        self.backButton = QtWidgets.QPushButton("BACK")
-        self.skipButton = QtWidgets.QPushButton("SKIP")
-        self.nextButton = QtWidgets.QPushButton("NEXT")
-        self.backButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.skipButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.nextButton.setCursor(QtCore.Qt.PointingHandCursor)
-        self.backButton.setFixedSize(84, 42)
-        self.skipButton.setFixedSize(84, 42)
-        self.nextButton.setFixedSize(84, 42)
-        self.backButton.clicked.connect(lambda: self.parent().setCurrentIndex(self.parent().currentIndex() - 1))
-        self.skipButton.clicked.connect(self.validate_page)
-        self.nextButton.clicked.connect(self.validate_page)
-
-        self.backButton.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.skipButton.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.nextButton.setStyleSheet("""
-            QPushButton{
-                background: #148CD2;
-                border: none;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                border: 1px solid #D9D9D9;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-
-        self.v_spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        self.mainLayout.addItem(self.v_spacer)
-
-        self.bottomButtonsLayout = QtWidgets.QHBoxLayout()
-        self.bottomButtonsLayout.setAlignment(QtCore.Qt.AlignRight)
-        self.mainLayout.addLayout(self.bottomButtonsLayout)
-        self.bottomButtonsLayout.addWidget(self.skipButton)
-        self.bottomButtonsLayout.addWidget(self.backButton)
-        self.bottomButtonsLayout.addWidget(self.nextButton)
-
-    @property
-    def isValid(self):
-        return self._isValid
-
-    @isValid.setter
-    def isValid(self, value):
-        self._isValid = value
-        button = self.parent().parent().button_group.button(self.parent().currentIndex())
-        if value:
-            button.setIcon(
-                QtGui.QIcon(icon_paths.ICON_CHECKGREEN_BORDERLESS_LRG))
-        else:
-            button.setIcon(QtGui.QIcon())
-
-    def validate_page(self):
-        self.isValid = False
-
-        self.isValid = True
-
-        for seq in [self.sequenceTree.topLevelItem(i) for i in range(self.sequenceTree.topLevelItemCount())]:
-            shots = [seq.child(c) for c in range(seq.childCount())]
-            self.validationData[seq] = shots
-
-        self.parent().setCurrentIndex(self.parent().currentIndex() + 1)
-
-    def add_sequence(self):
-        sequenceName = self.nameLine.text()
-        sequenceProduction = not self.productionCheckBox.isChecked()
-        shotRange = [self.beginRangeSpin.value(), self.endRangeSpin.value(), self.incrementSpin.value()]
-        padding = self.paddingCheckBox.isChecked()
-        seqStrSuffix = self.addSeqStrCheckBox.isChecked()
-        underscore = self.underscoreCheckBox.isChecked()
-
-        sequenceNameStr = sequenceName
-
-        if seqStrSuffix:
-            sequenceNameStr += "_seq"
-
-        if not self.nameLine.text():
-            try:
-                self.emptyNameError.deleteLater()
-            except:
-                pass
-            self.emptyNameError = AnimatedPopupMessage(message="Name field required", type=AnimatedPopupMessage.ERROR,
-                                      parent=self.parent(), width=self.parent().width())
-            self.emptyNameError.do_anim()
-            return False
-
-        sequenceItem = self.sequenceTree.findItems(str(sequenceNameStr), QtCore.Qt.MatchExactly, 0)
-        if not sequenceItem:
-            sequenceItem = QtWidgets.QTreeWidgetItem(self.sequenceTree)
-            sequenceItem.sequenceData = {
-                "sequenceName": sequenceNameStr,
-                "sequenceProduction": sequenceProduction
-            }
-            sequenceItem.setText(0, sequenceNameStr)
-            sequenceItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
-        else:
-            sequenceItem = sequenceItem[0]
-        if shotRange[2]:
-            begin = shotRange[0]
-            end = shotRange[1]
-            inc = shotRange[2]
-            for shotNum in range(begin, end, inc):
-                shotNum = str(shotNum).zfill(4) if padding else str(shotNum)
-                shotName = "{0}{1}{2}".format(
-                    sequenceName, "_" if underscore else "", shotNum
-                )
-                shotItem = self.sequenceTree.findItems(str(shotName), QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive, 0)
-                if not shotItem:
-                    shotItem = QtWidgets.QTreeWidgetItem(sequenceItem)
-                    shotItem.shotData = {
-                        "shotName": shotName,
-                        "shotProduction": sequenceItem.sequenceData['sequenceProduction']
-                    }
-                    shotItem.setText(0, shotName)
-                    shotItem.setIcon(0, QtGui.QIcon(icon_paths.ICON_SHOT_LRG))
-
-        self.sequenceTree.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        self.sequenceTree.expandAll()
-
-    def remove_sequence(self):
-        selected_items = self.sequenceTree.selectedItems()
-        for item in selected_items:
-            par = item.parent()
-            if par:
-                par.takeChild(par.indexOfChild(item))
-            else:
-                self.sequenceTree.takeTopLevelItem(self.sequenceTree.indexOfTopLevelItem(item))
-
-
 class ReviewFinishForm(QtWidgets.QFrame):
     def __init__(self, parent=None):
         super(ReviewFinishForm, self).__init__(parent=parent)
@@ -976,7 +359,7 @@ class ReviewFinishForm(QtWidgets.QFrame):
         self.topLayout.setAlignment(QtCore.Qt.AlignLeft)
         self.mainLayout.addLayout(self.topLayout)
         self.mainLayout.addWidget(cqtutil.h_line())
-        self.formLayout = CustomVBoxLayout()
+        self.formLayout = cqtutil.FormVBoxLayout()
         self.formLayout.setSpacing(10)
         self.mainLayout.addLayout(self.formLayout)
 
@@ -1143,108 +526,48 @@ class CreateProjectWindow(QtWidgets.QDialog):
         currentUser = mgutil.getCurrentUser()
 
         # Create Job Object
-        jobObject = handler['job'].objectPrototype()
-        jobObject._generate_id()
-        jobObject.created = datetime.datetime.now()
-        jobObject.modified = jobObject.created
-        jobObject.label = initialForm['jobAlias']
-        jobObject.path = os.path.abspath(os.path.join(initialForm['jobDirectory'], jobObject.label))
-        jobObject.job = jobObject.label
-        jobObject.created_by = currentUser.uuid
-        jobObject.fullname = initialForm['jobFullTitle']
-        jobObject.resolution = initialForm['jobResolution']
-        jobObject.admins = [jobObject.created_by]
-        jobObject.allowed_users = jobObject.admins
+        jobObject = handler['job'].create(
+            label=initialForm['jobAlias'],
+            path=os.path.abspath(os.path.join(initialForm['jobDirectory'], initialForm['jobAlias'])),
+            job=initialForm['jobAlias'],
+            created_by=currentUser.uuid,
+            fullname=initialForm['jobFullTitle'],
+            resolution=initialForm['jobResolution'],
+            admins=[currentUser.uuid],
+            allowed_users=[currentUser.uuid]
+        )
         jobObject.save()
         cometpublish.build_job_directory(jobObject)
 
         # Create Job Entity
-        jobEntityObject = handler['entity'].objectPrototype()
-        jobEntityObject._generate_id()
-        jobEntityObject.created = datetime.datetime.now()
-        jobEntityObject.modified = jobEntityObject.created
-        jobEntityObject.label = jobObject.label
-        jobEntityObject.path = os.path.abspath(os.path.join(
-            jobObject.path, "production", jobEntityObject.label))
-        jobEntityObject.job = jobObject.job
-        jobEntityObject.type = 'job'
-        jobEntityObject.production = True
-        jobEntityObject.parent_uuid = None
-        jobEntityObject.created_by = currentUser.uuid
+        jobEntityObject = handler['entity'].create(
+            label=jobObject.label,
+            path=cometpublish.util.sequenceShotTargetPath(jobObject, jobObject.label),
+            job=jobObject.job,
+            type='job',
+            production=True,
+            parent_uuid=None,
+            created_by=currentUser.uuid,
+            jobpath="/"
+        )
         jobEntityObject.save()
         cometpublish.build_entity_directory(jobEntityObject)
 
         if initialForm['createDefaultAssets']:
             default_asset_list = sorted(DEFAULT_ROOT_ENTITIES)
             for default_asset in default_asset_list:
-                assetObject = handler['entity'].objectPrototype()
-                assetObject._generate_id()
-                assetObject.created = datetime.datetime.now()
-                assetObject.modified = assetObject.created
-                assetObject.label = default_asset
-                assetObject.path = os.path.abspath(os.path.join(jobObject.path, "assets", assetObject.label))
-                assetObject.job = jobObject.job
-                assetObject.type = 'asset'
-                assetObject.production = True
-                assetObject.parent_uuid = jobEntityObject.uuid
-                assetObject.created_by = currentUser.uuid
+                assetObject = handler['entity'].create(
+                    label=default_asset,
+                    path=cometpublish.util.assetTargetPath(jobEntityObject, default_asset),
+                    job=jobObject.job,
+                    type='asset',
+                    production=True,
+                    parent_uuid=jobEntityObject.uuid,
+                    created_by=currentUser.uuid,
+                    jobpath="/{}".format(default_asset)
+                )
                 assetObject.save()
                 cometpublish.build_entity_directory(assetObject)
-
-        # # Create Asset Objects
-        # for assetCategory, assetItems in assetsForm.items():
-        #     assetType = ASSET_PREFIX_DICT[assetCategory]
-        #     for assetItem in assetItems:
-        #         assetObject = handler['entity'].objectPrototype()
-        #         assetObject._generate_id()
-        #         assetObject.created = datetime.datetime.now()
-        #         assetObject.modified = assetObject.created
-        #         assetObject.label = assetItem.assetData['assetName']
-        #         assetObject.path = os.path.abspath(os.path.join(jobObject.path, "ASSETS", assetCategory, assetObject.label))
-        #         assetObject.job = jobObject.job
-        #         assetObject.type = 'asset'
-        #         assetObject.production = assetItem.assetData['assetProduction']
-        #         assetObject.prefix = assetType
-        #         assetObject.parent_uuid = jobEntityObject.uuid
-        #         if assetItem.assetData['assetThumbnail']:
-        #             assetObject.thumbnail = assetItem.assetData['assetThumbnail']
-        #         assetObject.created_by = currentUser.uuid
-        #         assetObject.save()
-        #         cometpublish.build_entity_directory(assetObject)
-        #
-        # # Create Sequence Objects
-        # for sequence, shots in sequencesForm.items():
-        #     sequenceObject = handler['entity'].objectPrototype()
-        #     sequenceObject._generate_id()
-        #     sequenceObject.created = datetime.datetime.now()
-        #     sequenceObject.modified = sequenceObject.created
-        #     sequenceObject.label = sequence.sequenceData['sequenceName']
-        #     sequenceObject.path = os.path.abspath(os.path.join(
-        #         jobObject.path, "PRODUCTION", sequenceObject.label))
-        #     sequenceObject.job = jobObject.job
-        #     sequenceObject.type = 'sequence'
-        #     sequenceObject.production = sequence.sequenceData['sequenceProduction']
-        #     sequenceObject.parent_uuid = jobEntityObject.uuid
-        #     sequenceObject.created_by = currentUser.uuid
-        #     sequenceObject.save()
-        #     cometpublish.build_entity_directory(sequenceObject)
-        #
-        #     # Create Shot Objects
-        #     for shot in shots:
-        #         shotObject = handler['entity'].objectPrototype()
-        #         shotObject._generate_id()
-        #         shotObject.created = datetime.datetime.now()
-        #         shotObject.modified = shotObject.created
-        #         shotObject.label = shot.shotData['shotName']
-        #         shotObject.path = os.path.abspath(os.path.join(
-        #             jobObject.path, "PRODUCTION", shotObject.label))
-        #         shotObject.job = jobObject.job
-        #         shotObject.type = 'shot'
-        #         shotObject.production = sequenceObject.production
-        #         shotObject.parent_uuid = sequenceObject.uuid
-        #         shotObject.created_by = currentUser.uuid
-        #         shotObject.save()
-        #         cometpublish.build_entity_directory(shotObject)
 
         self.setCursor(QtCore.Qt.ArrowCursor)
 

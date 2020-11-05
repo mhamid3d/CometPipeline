@@ -460,19 +460,16 @@ class UiRegisterForm(QtWidgets.QStackedWidget):
 
         hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(12))
 
-        user_data_object = self.handler['user'].objectPrototype()
-        user_data_object._generate_id()
-        user_data_object.first_name = first_name
-        user_data_object.last_name = last_name
-        user_data_object.username = username
-        user_data_object.email = email
-        user_data_object.password = hashed_pw
+        user_data_object = self.handler['user'].create(
+            first_name=first_name,
+            last_name=last_name,
+            username=username,
+            email=email,
+            password=hashed_pw
+        )
         user_data_object.avatar.put(open(avatar, "rb"))
-        user_data_object.created = datetime.datetime.now()
-        user_data_object.modified = datetime.datetime.now()
-        user_data_object.jobs = ['CAIN', 'PYCL', 'LIBRARY']
-
-        self.save = user_data_object.save()
+        user_data_object.save()
+        self.save = user_data_object
 
         self.successForm = SuccessForm(self)
         self.successForm.login_button.clicked.connect(lambda: self.parent().setCurrentIndex(1))

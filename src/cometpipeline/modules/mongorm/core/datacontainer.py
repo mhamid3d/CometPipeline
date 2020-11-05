@@ -5,24 +5,29 @@ class DataContainer(object):
     def __init__(self, interface, querySet=None):
         self._objects = []
         self._interface = interface
+        self._sortField = interface.objectPrototype.DEFAULT_SORT
         if querySet:
             for object in querySet:
                 self.append_object(object)
-            self.sort(interface.objectPrototype.DEFAULT_SORT)
+            self.sort()
 
     def append_object(self, object):
 
         assert isinstance(object, AbstractDataObject), "Object must be DataObject instance"
 
-        if not object.interfaceName() == self._interface.name():
+        if not object.interfaceName() == self.interfaceName():
             raise TypeError("Data Object of type ({}) does not match with DataContainer type ({})".format(
-                object.interfaceName(), self._interface.name()))
+                object.interfaceName(), self.interfaceName()))
 
-        self._objects.append(object)
+        if object.getUuid() not in [x.getUuid() for x in self._objects]:
+            self._objects.append(object)
+
+        self.sort()
 
     def remove_object(self, object):
         try:
             self._objects.remove(object)
+            self.sort()
         except ValueError as e:
             raise e("Object does not exist in DataContainer")
 
@@ -41,14 +46,18 @@ class DataContainer(object):
     def __getitem__(self, item):
         return self._objects[item]
 
-    def get(self, object):
-        assert isinstance(object, DataObject), "Object must be DataObject instance"
+    def get(self, idx):
+        try:
+            item = self[idx]
+            return item
+        except IndexError as ie:
+            raise ie("Index {} out of range for data container".format(idx))
 
-        for obj in self._objects:
-            if object.getUuid() == obj.getUuid():
-                return object
-
-        raise ValueError("DataObject does not exist in DataContainer")
+    def extend(self, dataContainer):
+        assert dataContainer.interfaceName() == self.interfaceName()
+        for dataObject in dataContainer:
+            self.append_object(dataObject)
+        self.sort()
 
     def dataInterface(self):
         return self._interface
@@ -56,9 +65,11 @@ class DataContainer(object):
     def interfaceName(self):
         return self.dataInterface().name()
 
-    def sort(self, sort_field, reverse=False):
-        if sort_field not in [field.db_field for field in self._interface.getFields()]:
-            raise TypeError(
-                "Invalid sort field ({}) for DataInterface ({})".format(sort_field, self.interfaceName()))
-        self._sortField = sort_field
-        self._objects = sorted(self._objects, key=lambda i: i.get(sort_field), reverse=reverse)
+    def sort(self, sort_field=None, reverse=False):
+        if sort_field:
+            if sort_field not in [field.db_field for field in self._interface.getFields()]:
+                raise TypeError(
+                    "Invalid sort field ({}) for DataInterface ({})".format(sort_field, self.interfaceName()))
+            self._sortField = sort_field
+
+        self._objects = sorted(self._objects, key=lambda i: i.get(self._sortField), reverse=reverse)

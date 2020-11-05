@@ -81,7 +81,7 @@ QWidget:disabled {
   selection-background-color: #14506E;
   selection-color: #787878;
 }
-
+/*
 QWidget::item:selected {
   background-color: #1464A0;
 }
@@ -90,7 +90,7 @@ QWidget::item:hover {
   background-color: #148CD2;
   color: #494949;
 }
-
+*/
 /* QMainWindow ------------------------------------------------------------
 
 This adjusts the splitter in the dock widget, not qsplitter
@@ -242,7 +242,7 @@ https://doc.qt.io/qt-5/stylesheet-examples.html#customizing-qgroupbox
 QGroupBox {
   font-weight: bold;
   border: 1px solid #494949;
-  border-radius: 4px;
+  border-radius: 0px;
   padding: 4px;
   margin-top: 16px;
 }
@@ -809,6 +809,7 @@ QAbstractSpinBox {
   padding-left: 4px;
   padding-right: 4px;
   border-radius: 0px;
+  min-height: 25px;
   /* min-width: 5px; removed to fix 109 */
 }
 
@@ -816,10 +817,7 @@ QAbstractSpinBox:up-button {
   background-color: transparent #2B2B2B;
   subcontrol-origin: border;
   subcontrol-position: top right;
-  border-left: 1px solid #494949;
-  border-bottom: 1px solid #494949;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  border: 0;
   margin: 1px;
   width: 12px;
   margin-bottom: -1px;
@@ -839,10 +837,7 @@ QAbstractSpinBox:down-button {
   background-color: transparent #2B2B2B;
   subcontrol-origin: border;
   subcontrol-position: bottom right;
-  border-left: 1px solid #494949;
-  border-top: 1px solid #494949;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  border: 0;
   margin: 1px;
   width: 12px;
   margin-top: -1px;
@@ -1006,10 +1001,9 @@ https://doc.qt.io/qt-5/stylesheet-examples.html#customizing-qpushbutton
 
 -------------------------f-------------------------------------------------- */
 QPushButton {
-  background-color: none;
-  border: 1px solid #6e6e6e;
+  background-color: #383838;
+  border-radius: 3px;
   color: #9e9e9e;
-  border-radius: 0px;
   outline: none;
   padding: 6px;
   /* Issue #194 - Special case of QPushButton inside dialogs, for better UI */
@@ -1047,12 +1041,11 @@ QPushButton::menu-indicator {
 }
 
 QPushButton:pressed {
-  background-color: #3e3e3e;
-  border: 1px solid #2B2B2B;
+  background-color: #1e1e1e;
+  border: 1px solid #1e1e1e;
 }
 
 QPushButton:pressed:hover {
-  border: 1px solid #148CD2;
 }
 
 QPushButton:selected {
@@ -1061,7 +1054,7 @@ QPushButton:selected {
 }
 
 QPushButton:hover {
-  border: 1px solid #9e9e9e;
+  border: 1px solid #4e4e4e;
   color: white;
 }
 
@@ -1194,8 +1187,7 @@ QComboBox {
   border: 1px solid #494949;
   border-radius: 0px;
   selection-background-color: #1464A0;
-  padding-left: 4px;
-  padding-right: 36px;
+  padding: 3px;
   min-height: 1.5em;
 }
 
@@ -1236,7 +1228,7 @@ QComboBox:focus {
 QComboBox:on {
   selection-background-color: #1464A0;
 }
-
+/*
 QComboBox::indicator {
   border: none;
   border-radius: 0;
@@ -1244,23 +1236,18 @@ QComboBox::indicator {
   selection-background-color: transparent;
   color: transparent;
   selection-color: transparent;
-  /* Needed to remove indicator - fix #132 */
 }
 
 QComboBox::indicator:alternate {
   background: #2B2B2B;
 }
-
+*/
 QComboBox::item:alternate {
   background: #2B2B2B;
 }
 
 QComboBox::item:checked {
   font-weight: bold;
-}
-
-QComboBox::item:selected {
-  border: 0px solid transparent;
 }
 
 QComboBox::drop-down {

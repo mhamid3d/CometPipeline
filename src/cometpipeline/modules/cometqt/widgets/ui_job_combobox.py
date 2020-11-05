@@ -1,11 +1,12 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
 import mongorm
+import qdarkstyle
 
 
 class JobComboBox(QtWidgets.QComboBox):
     def __init__(self, parent=None):
-        super(JobComboBox, self).__init__(parent)
+        super(JobComboBox, self).__init__(parent=parent)
         handler = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(handler['job'])
@@ -42,3 +43,11 @@ class JobComboBox(QtWidgets.QComboBox):
 
     def currentDataObject(self):
         return self.getDataObjectFromIndex(self.currentIndex())
+
+
+if __name__ == '__main__':
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    win = JobComboBox()
+    win.show()
+    sys.exit(app.exec_())

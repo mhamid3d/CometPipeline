@@ -6,6 +6,9 @@ import qdarkstyle
 
 
 class ProjectBrowserBootstrap(object):
+
+    EXIT_CODE_REBOOT = -123
+
     def __init__(self):
         super(ProjectBrowserBootstrap, self).__init__()
 
@@ -35,11 +38,15 @@ class ProjectBrowserBootstrap(object):
 
 if __name__ == '__main__':
     import sys
-    app = QtWidgets.QApplication(sys.argv)
-    font = QtGui.QFont("Ubuntu")
-    font.setStyleHint(QtGui.QFont.Monospace)
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
-    app.setFont(font)
-    bootstrap = ProjectBrowserBootstrap()
-    bootstrap.run()
-    sys.exit(app.exec_())
+    currentExitCode = ProjectBrowserBootstrap.EXIT_CODE_REBOOT
+    while currentExitCode == ProjectBrowserBootstrap.EXIT_CODE_REBOOT:
+        app = QtWidgets.QApplication.instance()
+        if not app:
+            app = QtWidgets.QApplication(sys.argv)
+        font = QtGui.QFont("Ubuntu")
+        font.setStyleHint(QtGui.QFont.Monospace)
+        app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+        app.setFont(font)
+        bootstrap = ProjectBrowserBootstrap()
+        bootstrap.run()
+        currentExitCode = app.exec_()

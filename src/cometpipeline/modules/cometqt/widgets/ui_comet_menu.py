@@ -2,6 +2,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
 from cometqt import util as cqtutil
 from cometqt.widgets.ui_job_combobox import JobComboBox
+from cometbrowser.ui.ui_project_manager import ProjectManager
 from cometbrowser.ui.ui_create_project_window import CreateProjectWindow
 
 
@@ -61,7 +62,7 @@ class CometMenu(QtWidgets.QMenu):
 
     def create_actions(self):
         self.createNewProject = self.addAction(label="Create New Project", icon=icon_paths.ICON_CRAFT_LRG, exc=self.doCreateProject)
-        self.manageProject = self.addAction(label="Manage Project", icon=icon_paths.ICON_SLIDERS_LRG)
+        self.manageProject = self.addAction(label="Manage Project", icon=icon_paths.ICON_SLIDERS_LRG, exc=self.doManageProject)
         self.switchProject = self.addAction(label="Switch Project", icon=icon_paths.ICON_RELOADGREY_LRG, exc=self.doSwitchProject)
         self.addSeparator()
         self.closeBrowser = self.addAction(label="Quit Comet Browser", icon=icon_paths.ICON_DOOROPEN_LRG, exc=self.doCloseBrowser)
@@ -86,6 +87,7 @@ class CometMenu(QtWidgets.QMenu):
         diag.setLayout(lyt)
 
         jobComboBox = JobComboBox(parent=self)
+        jobComboBox.setIndexFromDataObject(self.parent().browserMain.currentJob())
 
         btnBox = QtWidgets.QDialogButtonBox()
         createButton = QtWidgets.QPushButton("Switch")
@@ -108,7 +110,11 @@ class CometMenu(QtWidgets.QMenu):
             self.parent().browserMain.setCurrentJob(selectedJob)
 
     def doManageProject(self):
-        pass
+        mngr = ProjectManager(parent=self.parent().browserMain, jobObject=self.parent().browserMain.currentJob())
+        result = mngr.exec_()
+
+        if result == mngr.Accepted:
+            self.parent().browserMain.productionPage.entityViewer.populate()
 
 
 class CometMenuButton(QtWidgets.QFrame):

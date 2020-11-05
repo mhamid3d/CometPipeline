@@ -24,56 +24,38 @@ class Job(DataObject, mongoengine.Document):
     def children(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db["package"], parent_uuid=self.uuid)
-        packages = db["package"].all(filt)
-        if packages.hasObjects():
-            return packages
-        else:
-            return None
+        filt.search(db["entity"], job=self.label)
+        children = db["entity"].all(filt)
+        return children
 
-    def siblings(self, includeSelf=False):
+    def siblings(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(db['job'])
         siblings = db['job'].all(filt)
-        if not siblings.size() < 2:
-            if includeSelf:
-                return siblings
-            else:
-                siblings.remove_object(self)
-                return siblings
-        else:
-            return None
+        siblings.remove_object(self)
+        return siblings
 
     def shots(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(db["entity"], job=self.label, type="shot")
-        entities = db["entitiy"].all(filt)
-        if entities.hasObjects():
-            return entities
-        else:
-            return None
+        shots = db["entitiy"].all(filt)
+        return shots
 
     def sequences(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(db["entity"], job=self.label, type="sequence")
-        entities = db["entitiy"].all(filt)
-        if entities.hasObjects():
-            return entities
-        else:
-            return None
+        sequences = db["entitiy"].all(filt)
+        return sequences
 
     def assets(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(db["entity"], job=self.label, type="asset")
-        entities = db["entitiy"].all(filt)
-        if entities.hasObjects():
-            return entities
-        else:
-            return None
+        assets = db["entitiy"].all(filt)
+        return assets
 
 
 class Entity(DataObject, mongoengine.Document):
@@ -86,6 +68,7 @@ class Entity(DataObject, mongoengine.Document):
     type = mongoengine.StringField(required=True, dispName="Type")  # eg: 'sequence', 'shot', 'asset', 'job'
     production = mongoengine.BooleanField(required=True, dispName="Active")  # Set false for testing / rnd stems
     parent_uuid = mongoengine.StringField(dispName="Parent UUID")
+    jobpath = mongoengine.StringField(dispName="Job Path", required=True)
 
     # Optional fields
     framerange = mongoengine.ListField(dispName="Frame Range")
@@ -94,55 +77,77 @@ class Entity(DataObject, mongoengine.Document):
     def children(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db["package"], parent_uuid=self.uuid)
-        packages = db["package"].all(filt)
-        if packages.hasObjects():
-            return packages
-        else:
-            return None
+        filt.search(db["entity"], job=self.job, parent_uuid=self.uuid)
+        children = db["entity"].all(filt)
+        return children
+
+    def recursive_children(self):
+        from mongorm.core.datacontainer import DataContainer
+
+        container = DataContainer(interface=mongorm.getHandler()[self.INTERFACE_STRING])
+
+        for child in self.children():
+            container.append_object(child)
+            container.extend(child.recursive_children())
+
+        container.sort(sort_field="jobpath")
+
+        return container
 
     def parent(self):
-        if self.type == "sequence" or self.type == "asset":
-            interface = "job"
-        else:
-            interface = "entitiy"
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db[interface], uuid=self.parent_uuid)
-        packages = db[interface].one(filt)
-        if packages.hasObjects():
-            return packages
-        else:
-            return None
+        filt.search(db['entity'], job=self.job, uuid=self.parent_uuid)
+        parent = db['entity'].one(filt)
+        return parent
 
-    def siblings(self, includeSelf=False):
+    def siblings(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['entity'], parent_uuid=self.parent_uuid)
+        filt.search(db['entity'], job=self.job, parent_uuid=self.parent_uuid)
         siblings = db['entity'].all(filt)
-        if not siblings.size() < 2:
-            if includeSelf:
-                return siblings
-            else:
-                siblings.remove_object(self)
-                return siblings
-        else:
-            return None
+        siblings.remove_object(self)
+        return siblings
 
-    def getEntityPath(self):
-        #TODO:
-        pass
+    def publishName(self):
+        if self.type == "asset":
+            return self.jobpath[1:].replace("/", "_")
+        else:
+            return self.label
 
 
 class Package(DataObject, mongoengine.Document):
+    '''
+    breakdown-example:
+    -------------------------------------------------
+    LOOK _ char_marty _ test _ varA _ lod300
+    {0}       {1}       {2}    {3}     {4}
+    -------------------------------------------------
+    {0} - 'type' - required
+    {1} - 'asset_in_shot' - not required
+    {2} - 'label' - not required
+    {3} - 'variation'
+    {4} - 'lod'
+    {3} & {4} - variation type tags, should probably come from the 'tags' field
+    -------------------------------------------------
+    examples:
+    - LOOK_char_marty_varA_lod300                    - {type}_{entity}_{variations}
+    - LOOK_char_marty_test_varA_lod300               - {type}_{entity}_{label}_{variations}
+    - LOOK_ab0125_char_marty_varA_lod300             - {type}_{entity}_{assetpath}_{variations}
+
+    - CGR_ab0125_lighting_char_marty_L010_beauty     - {type}_{entity}_{task}_{label}
+    - CGR_ab0125_lighting_prop_wallet_L010_beauty    - {type}_{entity}_{task}_{label}
+    - CGR_ab0125_lighting_all_id_L010_util           - {type}_{entity}_{task}_{label}
+
+    '''
 
     _name = "Package"
     meta = {'collection': 'package'}
     INTERFACE_STRING = "package"
 
     # Required fields
-    parent_uuid = mongoengine.StringField(required=True, dispName="Entity UUID", visible=False)
-    task = mongoengine.StringField(required=True, dispName="Task")
+    parent_uuid = mongoengine.StringField(required=True, dispName="Package UUID", visible=False)
+    labelmap = mongoengine.DictField(required=True, dispName="Label Map")
     type = mongoengine.StringField(required=True, dispName="Type")
 
     # Optional fields
@@ -153,46 +158,33 @@ class Package(DataObject, mongoengine.Document):
     def children(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db["version"], parent_uuid=self.uuid)
+        filt.search(db["version"], job=self.job, parent_uuid=self.uuid)
         packages = db["version"].all(filt)
-        if packages.hasObjects():
-            return packages
-        else:
-            return None
+        packages.sort(sort_field='version')
+        return packages
 
     def parent(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['entity'], uuid=self.parent_uuid)
+        filt.search(db['entity'], job=self.job, uuid=self.parent_uuid)
         entity = db['entitiy'].one(filt)
-        if entity:
-            return entity
-        else:
-            filt.search(db['job'], uuid=self.parent_uuid)
-            job = db['job'].one(filt)
-            return job
+        return entity
 
     def latest(self):
         children = self.children()
         if not children:
-            return False
+            return None
 
         children.sort("version", reverse=True)
         return children[0]
 
-    def siblings(self, includeSelf=False):
+    def siblings(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['twig'], stem_uuid=self.stem_uuid)
-        siblings = db['twig'].all(filt)
-        if not siblings.size() < 2:
-            if includeSelf:
-                return siblings
-            else:
-                siblings.remove_object(self)
-                return siblings
-        else:
-            return None
+        filt.search(db['package'], job=self.job, parent_uuid=self.parent_uuid)
+        siblings = db['package'].all(filt)
+        siblings.remove_object(self)
+        return siblings
 
 
 class Version(DataObject, mongoengine.Document):
@@ -215,36 +207,24 @@ class Version(DataObject, mongoengine.Document):
     def children(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db["content"], parent_uuid=self.uuid)
-        packages = db["content"].all(filt)
-        if packages.hasObjects():
-            return packages
-        else:
-            return None
+        filt.search(db["content"], job=self.job, parent_uuid=self.uuid)
+        children = db["content"].all(filt)
+        return children
 
     def parent(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['package'], uuid=self.parent_uuid)
-        package = db['package'].one(filt)
-        if package:
-            return package
-        else:
-            return None
+        filt.search(db['package'], job=self.job, uuid=self.parent_uuid)
+        parent = db['package'].one(filt)
+        return parent
 
-    def siblings(self, includeSelf=False):
+    def siblings(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['version'], parent_uuid=self.parent_uuid)
+        filt.search(db['version'], job=self.job, parent_uuid=self.parent_uuid)
         siblings = db['version'].all(filt)
-        if not siblings.size() < 2:
-            if includeSelf:
-                return siblings
-            else:
-                siblings.remove_object(self)
-                return siblings
-        else:
-            return None
+        siblings.remove_object(self)
+        return siblings
 
 
 class Content(DataObject, mongoengine.Document):
@@ -268,26 +248,17 @@ class Content(DataObject, mongoengine.Document):
     def parent(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['version'], uuid=self.parent_uuid)
-        version = db['version'].one(filt)
-        if version:
-            return version
-        else:
-            return None
+        filt.search(db['version'], job=self.job, uuid=self.parent_uuid)
+        parent = db['version'].one(filt)
+        return parent
 
-    def siblings(self, includeSelf=False):
+    def siblings(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['content'], parent_uuid=self.parent_uuid)
+        filt.search(db['content'], job=self.job, parent_uuid=self.parent_uuid)
         siblings = db['content'].all(filt)
-        if not siblings.size() < 2:
-            if includeSelf:
-                return siblings
-            else:
-                siblings.remove_object(self)
-                return siblings
-        else:
-            return None
+        siblings.remove_object(self)
+        return siblings
 
 
 class Dependency(DataObject, mongoengine.Document):
@@ -303,19 +274,13 @@ class Dependency(DataObject, mongoengine.Document):
     def children(self):
         return None
 
-    def siblings(self, includeSelf=False):
+    def siblings(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
-        filt.search(db['dependency'], source_version_uuid=self.source_version_uuid)
+        filt.search(db['dependency'], job=self.job, source_version_uuid=self.source_version_uuid)
         siblings = db['dependecy'].all(filt)
-        if not siblings.size() < 2:
-            if includeSelf:
-                return siblings
-            else:
-                siblings.remove_object(self)
-                return siblings
-        else:
-            return None
+        siblings.remove_object(self)
+        return siblings
 
 
 class User(AbstractDataObject, mongoengine.Document):

@@ -81,6 +81,16 @@ class EntityTree(QtWidgets.QTreeWidget):
             if self.currentItem():
                 EntitySettings(parent=self, entityObject=self.currentItem().dataObject).exec_()
 
+    def getAllItems(self):
+        objects = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            objects.append(item)
+            iterator += 1
+
+        return objects
+
 
 class EntitySettings(QtWidgets.QDialog):
     def __init__(self, parent=None, entityObject=None):
@@ -151,7 +161,7 @@ class EntitySettings(QtWidgets.QDialog):
         if dataObject.get("type") == "sequence":
             h = mongorm.getHandler()
             f = mongorm.getFilter()
-            f.search(h['entity'], parent_uuid=dataObject.uuid)
+            f.search(h['entity'], parent_uuid=dataObject.uuid, job=dataObject.job)
             all_shots = h['entity'].all(f)
             for shot in all_shots:
                 shot.production = value
@@ -180,10 +190,10 @@ class EntityViewer(QtWidgets.QWidget):
     SEARCH_HEIGHT = 32
     TYPE_ASSETS = "assets"
     TYPE_PRODUCTION = "production"
-    TYPE_DEFAULT = TYPE_ASSETS
+    TYPE_DEFAULT = TYPE_PRODUCTION
 
-    def __init__(self):
-        super(EntityViewer, self).__init__()
+    def __init__(self, parent=None):
+        super(EntityViewer, self).__init__(parent=parent)
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.setLayout(self.mainLayout)
         self.topLabelLayout = QtWidgets.QHBoxLayout()
@@ -254,7 +264,9 @@ class EntityViewer(QtWidgets.QWidget):
 
         self._currentJob = None
         self.setIsDialog(False)
-        self._entityType = self.TYPE_DEFAULT
+        self._entityType = None
+        self.setEntityType(self.TYPE_PRODUCTION)
+        self.setFromEnvironment()
 
     @property
     def entityType(self):
@@ -291,6 +303,27 @@ class EntityViewer(QtWidgets.QWidget):
         self.jobComboBox.setIndexFromDataObject(self._currentJob)
         self.jobComboBox.blockSignals(False)
         self.populate()
+
+    def setCurrentEntity(self, entityObject):
+
+        currentType = self.entityType
+
+        if entityObject.get("type") == "asset" and not self.entityType == self.TYPE_ASSETS:
+            self.setEntityType(self.TYPE_ASSETS)
+        elif not entityObject.get("type") == "asset" and not self.entityType == self.TYPE_PRODUCTION:
+            self.setEntityType(self.TYPE_PRODUCTION)
+
+        for item in self.entityTree.getAllItems():
+            if item.dataObject == entityObject:
+                self.entityTree.setCurrentItem(item)
+                return
+
+        self.setEntityType(currentType)
+        raise ValueError, "There is no such object in the data tree: {}".format(str(entityObject))
+
+    def currentEntity(self):
+        if self.entityTree.currentItem():
+            return self.entityTree.currentItem().dataObject
 
     def currentJob(self):
         return self._currentJob
@@ -369,10 +402,34 @@ class EntityViewer(QtWidgets.QWidget):
             for parent in all_parent:
                 parent.setHidden(False)
 
+    def setFromEnvironment(self):
+        import os
+        show = os.getenv("SHOW")
+        shot = os.getenv("SHOT")
+
+        if not show:
+            return
+
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(handler['job'], label=show)
+        jobObject = handler['job'].one(filt)
+        if jobObject:
+            self.setCurrentJob(jobObject)
+
+        if not shot:
+            return
+
+        filt.clear()
+        filt.search(handler['entity'], type__ne='asset', label=shot, job=show)
+        shotObject = handler['entity'].one(filt)
+        if shotObject:
+            self.setCurrentEntity(shotObject)
+
 
 class EntityPickerDialog(QtWidgets.QDialog):
-    def __init__(self, setEnvOnClose=True):
-        super(EntityPickerDialog, self).__init__()
+    def __init__(self, parent=None, setEnvOnClose=True):
+        super(EntityPickerDialog, self).__init__(parent=parent)
         self.setWindowTitle("Set Entity")
         self._setEnvOnClose = setEnvOnClose
         self.entityViewer = EntityViewer()

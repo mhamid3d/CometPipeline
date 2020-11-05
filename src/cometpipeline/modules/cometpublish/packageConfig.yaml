@@ -1,0 +1,171 @@
+publish:
+
+  contextFields:
+    - PackageType:
+        required: True
+    - Entity:
+        required: True
+
+  nameFields:
+    - task:
+        widget: QComboBox
+        options:
+          - comp
+          - prep
+          - roto
+          - retime
+          - editorial
+          - model
+          - groom
+          - texture
+          - lookdev
+          - rig
+          - cameratrack
+          - bodytrack
+          - previs
+          - layout
+          - anim
+          - muscle
+          - skin
+          - costume
+          - techanim
+          - crowd
+          - fx
+          - lighting
+          - concept
+          - dmp
+          - environment
+          - digimatte
+        editable: False
+    - subtask:
+        widget: QComboBox
+        options:
+          - slap
+          - contactsheet
+          - wedge
+          - comp
+          - element
+          - ibl
+          - rendermatte
+          - lightref
+    - prefix:
+        widget: QLineEdit
+    - label:
+        widget: QLineEdit
+    - layer:
+        widget: QComboBox
+        options:
+          - L010
+          - L020
+          - L030
+          - L040
+          - L050
+          - L060
+          - L070
+          - L080
+          - L090
+        editable: True
+    - type:
+        widget: QLineEdit
+    - var:
+        widget: QComboBox
+        options:
+          - varA
+          - varB
+          - varC
+          - varD
+          - varE
+          - varF
+          - varG
+          - varH
+          - varI
+          - varJ
+          - varK
+          - varL
+          - varM
+          - varN
+          - varO
+          - varP
+          - varQ
+          - varR
+          - varS
+          - varT
+          - varU
+          - varV
+          - varW
+          - varX
+          - varY
+          - varZ
+        editable: False
+    - lod:
+        widget: QComboBox
+        options:
+          - lod100
+          - lod200
+          - lod300
+          - lod400
+          - lod500
+          - lod600
+          - lod700
+          - lod800
+          - lod900
+        editable: False
+
+
+packageTypes:
+  - APKG:
+      desc: Asset Package
+      required:
+        - task
+        - lod
+      optional:
+        - label
+  - CACHE:
+      desc: Geometry Cache
+      required:
+        - task
+        - lod
+  - CGR:
+      desc: CG Render
+      required:
+        - task
+        - label
+        - layer
+        - type
+        - prefix
+  - EDIT:
+      desc: Editing
+      required:
+        - type
+  - ELEM:
+      desc: 2D Element
+      required:
+        - task
+  - KMOD:
+      desc: Katana Module
+  - LGTR:
+      desc: Light Rig
+  - LOOK:
+      desc: Asset Look File
+  - MODEL:
+      desc: Asset Model
+  - OUT:
+      desc: Presentable 2D Image Sequence
+      required:
+        - task
+        - subtask
+        - label
+  - PLAY:
+      desc: Playblast
+  - QC:
+      desc: Quality Assurance Check
+  - RIG:
+      desc: Asset Rig
+  - ROTO:
+      desc: Rotoscope element
+  - SCAN:
+      desc: Plate from source
+  - TEX:
+      desc: Asset Texture
+  - TRACK:
+      desc: 2D Camera Track

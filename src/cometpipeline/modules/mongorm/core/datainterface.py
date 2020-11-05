@@ -1,6 +1,7 @@
 from mongorm import interfaces
 from mongorm.core.datacontainer import DataContainer
 from mongoengine.errors import MultipleObjectsReturned
+import datetime
 import re
 
 
@@ -59,6 +60,13 @@ class DataInterface(object):
     @property
     def objectPrototype(self):
         return self._object_prototype
+
+    def create(self, *args, **kwargs):
+        obj = self._object_prototype(*args, **kwargs)
+        obj._generate_id()
+        obj.created = datetime.datetime.now()
+        obj.modified = obj.created
+        return obj
 
     def cacheSizeLimit(self):
         """Return cache size limit"""

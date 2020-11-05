@@ -1,5 +1,6 @@
 from pipeicon import icon_paths
 import mongoengine
+import datetime
 import mongorm
 import uuid
 import re
@@ -65,6 +66,15 @@ class AbstractDataObject(object):
     def pprint(self):
         import pprint
         pprint.pprint(self.getDataDict())
+
+    def is_saved(self):
+        result = self.dataInterface().get(self.uuid)
+        return True if result else False
+
+    def save(self):
+        if self.is_saved():
+            self.modified = datetime.datetime.now()
+        mongoengine.Document.save(self)
 
 
 class DataObject(AbstractDataObject):

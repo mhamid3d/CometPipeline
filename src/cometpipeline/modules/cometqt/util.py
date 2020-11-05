@@ -1,4 +1,5 @@
 from qtpy import QtWidgets, QtGui, QtCore
+from pipeicon import icon_paths
 
 
 def h_line():
@@ -62,10 +63,11 @@ class FlatIconButton(QtWidgets.QPushButton):
 
 
 class FormVBoxLayout(QtWidgets.QVBoxLayout):
-    def __init__(self):
+    def __init__(self, validationIcons=False):
         super(FormVBoxLayout, self).__init__()
         self.setAlignment(QtCore.Qt.AlignTop)
         self.setContentsMargins(9, 12, 9, 9)
+        self._validationIcons = validationIcons
 
     def addRow(self, label, widget, tip=""):
         text_template = """
@@ -90,8 +92,24 @@ class FormVBoxLayout(QtWidgets.QVBoxLayout):
         label.setIndent(0)
         layout = QtWidgets.QVBoxLayout()
         layout.setAlignment(QtCore.Qt.AlignLeft)
-        layout.addWidget(label)
-        layout.addWidget(widget)
+        if self._validationIcons:
+            iconLayout = QtWidgets.QHBoxLayout()
+            iconLayout.setAlignment(QtCore.Qt.AlignLeft)
+            layout.addLayout(iconLayout)
+            iconLabel = QtWidgets.QLabel()
+            iconLabel.setPixmap(QtGui.QPixmap(icon_paths.ICON_CLOCK_SML).scaled(
+                14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            ))
+            iconLayout.setSpacing(0)
+            iconLayout.addWidget(iconLabel)
+            iconLayout.addWidget(label)
+            iconLayout.setContentsMargins(0, 0, 0, 0)
+        else:
+            layout.addWidget(label)
+        try:
+            layout.addLayout(widget)
+        except:
+            layout.addWidget(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         self.addLayout(layout)
 
