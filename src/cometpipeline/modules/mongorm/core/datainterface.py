@@ -40,6 +40,8 @@ class DataInterface(object):
     def all(self, dataFilter):
         """Return all objects from filter"""
         datacontainer = DataContainer(self, querySet=dataFilter.querySet())
+        if dataFilter._sort:
+            datacontainer._sort = dataFilter.getSort()
         return datacontainer
 
     def one(self, dataFilter):

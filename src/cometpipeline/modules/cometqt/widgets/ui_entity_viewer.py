@@ -250,6 +250,7 @@ class EntityViewer(QtWidgets.QWidget):
         self.jobComboBox.currentIndexChanged.connect(lambda: self.setCurrentJob(
             self.jobComboBox.currentDataObject()
         ))
+        self.entityChanged = self.entityTree.itemSelectionChanged
 
         self.mainLayout.addLayout(self.topLabelLayout)
         self.topLabelLayout.addWidget(self.topLabel)
@@ -322,8 +323,11 @@ class EntityViewer(QtWidgets.QWidget):
         raise ValueError, "There is no such object in the data tree: {}".format(str(entityObject))
 
     def currentEntity(self):
-        if self.entityTree.currentItem():
-            return self.entityTree.currentItem().dataObject
+        sel = self.entityTree.selectedItems()
+        if sel:
+            return sel[0].dataObject
+        else:
+            return None
 
     def currentJob(self):
         return self._currentJob

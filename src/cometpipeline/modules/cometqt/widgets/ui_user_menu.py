@@ -84,7 +84,7 @@ class UserMenu(QtWidgets.QMenu):
                     </body>
             </html>
         """.format(
-            self.userObject.get("first_name") + " " + self.userObject.get("last_name"),
+            self.userObject.fullName(),
             self.userObject.get("username")
         ))
         self.nameLabel.setIndent(10)

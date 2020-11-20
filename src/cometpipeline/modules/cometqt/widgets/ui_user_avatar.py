@@ -16,8 +16,13 @@ class AvatarLabel(QtWidgets.QLabel):
                 padding: 0px;
             }
         """ % self._radius)
+        self.imgPixmap = None
         self.data = data
         self.load(data)
+
+    @property
+    def userPixmap(self):
+        return self.imgPixmap
 
     def load(self, data):
         self.data = data
@@ -39,6 +44,22 @@ class AvatarLabel(QtWidgets.QLabel):
     def setFromPath(self, path):
         self.imgPixmap = QtGui.QPixmap(path).scaled(
             self._radius * 2, self._radius * 2, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
+
+    def getRounded(self):
+        target = QtGui.QPixmap(self.size())
+        target.fill(QtCore.Qt.transparent)
+
+        painter = QtGui.QPainter(target)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        painter.setRenderHint(QtGui.QPainter.HighQualityAntialiasing, True)
+        painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
+
+        path = QtGui.QPainterPath()
+        path.addRoundedRect(0, 0, self.width(), self.height(), self._radius, self._radius)
+        painter.setClipPath(path)
+        # print self.imgPixmap.size()
+        painter.drawPixmap(0, 0, self.imgPixmap)
+        return target
 
     def paintEvent(self, event):
         self.target = QtGui.QPixmap(self.size())

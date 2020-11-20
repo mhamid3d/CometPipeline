@@ -399,14 +399,12 @@ class VersionPublisher(QtWidgets.QDialog):
             job=self.entityComboBox.getSelectedJob().get("label"),
             path=os.path.abspath(os.path.join(packageObject.path, self.versionPublishName)),
             version=self.versionComboBox.getSelectedVersion(),
-            comment="none",
-            status="In Progress",
+            comment="this is my test",
+            status="pending",
             state="complete"
         )
         versionObject.save()
         cometpublish.build_version_directory(versionObject)
-
-        print "Success!"
 
 
 if __name__ == '__main__':

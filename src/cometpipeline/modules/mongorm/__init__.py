@@ -12,3 +12,9 @@ def getHandler():
 def getFilter():
     from .core.datafilter import DataFilter
     return DataFilter()
+
+
+def createContainer(interface=None):
+    assert interface, "Please provide a valid interface"
+    from .core.datacontainer import DataContainer
+    return DataContainer(interface=interface)

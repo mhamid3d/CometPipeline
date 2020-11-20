@@ -430,6 +430,7 @@ QMenu::item {
 }
 
 QMenu::item:selected {
+  background-color: #148CD2;
   color: #F0F0F0;
 }
 
@@ -1016,7 +1017,7 @@ QPushButton:disabled {
 }
 
 QPushButton:checked {
-  background-color: #494949;
+  background-color: #148CD2;
   border: 1px solid #9e9e9e;
   color: white;
   outline: none;

@@ -13,13 +13,15 @@ class ProductionPage(QtWidgets.QWidget):
         self.splitterMain = QtWidgets.QSplitter()
         self.mainLayout.addWidget(self.splitterMain)
 
-        self.entityViewer = EntityViewer()
-        self.packageViewer = PackageViewer()
+        self.entityViewer = EntityViewer(parent=self)
+        self.packageViewer = PackageViewer(parent=self)
 
         self.splitterMain.addWidget(self.entityViewer)
         self.splitterMain.addWidget(self.packageViewer)
 
         self.splitterMain.setSizes([250, 850])
+
+        self.entityViewer.entityChanged.connect(self.packageViewer.populate_viewport)
 
 
 if __name__ == '__main__':

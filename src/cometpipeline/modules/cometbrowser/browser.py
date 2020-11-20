@@ -118,7 +118,8 @@ class ProjectBrowserMain(BaseMainWindow):
 
     def doCloseBrowser(self):
         self.saveSettings()
-
+        return
+        #TODO: figure out why pymongo errors when quitting thread
         notificationThread = self.top_interface_bar.notificationButton.notificationThread
         notificationReceived = self.top_interface_bar.notificationButton.notificationReceived
         notificationThread.notificationReceived.disconnect(notificationReceived)
@@ -134,6 +135,10 @@ class ProjectBrowserMain(BaseMainWindow):
         else:
             self.settings.setValue("current_entity", "none")
 
+        self.settings.endGroup()
+
+        self.settings.beginGroup("packageViewer")
+        self.settings.setValue("filteredPackageTypes", ";".join(self.productionPage.packageViewer.packageTypeNavigator.getFilteredTypes()))
         self.settings.endGroup()
 
     def loadSettings(self):
@@ -161,3 +166,9 @@ class ProjectBrowserMain(BaseMainWindow):
                 if item.text(0) == current_entity:
                     self.productionPage.entityViewer.entityTree.setCurrentItem(item)
                     break
+
+        filteredPackageTypes = self.settings.value("packageViewer/filteredPackageTypes")
+        if filteredPackageTypes:
+            self.productionPage.packageViewer.packageTypeNavigator.setFilteredTypes(filteredPackageTypes.split(";"))
+        else:
+            self.productionPage.packageViewer.packageTypeNavigator.setFilteredTypes()

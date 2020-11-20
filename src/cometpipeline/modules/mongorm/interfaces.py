@@ -160,7 +160,7 @@ class Package(DataObject, mongoengine.Document):
         filt = mongorm.getFilter()
         filt.search(db["version"], job=self.job, parent_uuid=self.uuid)
         packages = db["version"].all(filt)
-        packages.sort(sort_field='version')
+        packages.sort(sort_field='version', reverse=True)
         return packages
 
     def parent(self):
@@ -195,10 +195,10 @@ class Version(DataObject, mongoengine.Document):
 
     # Required fields
     comment = mongoengine.StringField(required=True, dispName="Comment", icon=icon_paths.ICON_COMMENT_SML)
-    status = mongoengine.StringField(required=True, dispName="Status")
+    status = mongoengine.StringField(required=True, dispName="Status", choices=['pending', 'approved', 'declined'])
     version = mongoengine.IntField(required=True, dispName="Version")
     parent_uuid = mongoengine.StringField(required=True, dispName="Package UUID", visible=False)
-    state = mongoengine.StringField(required=True, dispName="State", visible=False)  # 'complete', 'working', 'failed', eg: ip rendering means 'working'
+    state = mongoengine.StringField(required=True, dispName="State", visible=False, choices=['complete', 'working', 'failed'])
 
     # Optional fields
     framerange = mongoengine.ListField(dispName="Frame Range")
@@ -308,6 +308,9 @@ class User(AbstractDataObject, mongoengine.Document):
 
     def __str__(self):
         return "{} object [{}]".format(self.interfaceName(), self.username)
+
+    def fullName(self):
+        return "{} {}".format(self.first_name, self.last_name)
 
 
 class Notification(AbstractDataObject, mongoengine.Document):
