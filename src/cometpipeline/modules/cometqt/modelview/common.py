@@ -28,7 +28,7 @@ DB_FIELD_TYPE_MAP = {
 
 
 def configure_date(value):
-    displayText = value.strftime("%b %d %Y %H:%M %p")
+    displayText = value.strftime("%b %d %Y %I:%M %p")
     return [(QtCore.Qt.DisplayRole, displayText)]
 
 

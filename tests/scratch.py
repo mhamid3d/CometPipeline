@@ -1,8 +1,9 @@
-from functools import partial
+import mongorm
+import datetime
 
+db = mongorm.getHandler()
 
-def f(a, b, c, d, e):
-    return a + e
+obj = db['version'].get("9cb22e87-62b7-4c78-ada0-b528eba1da97")
 
-stuff = [1, 2, 3, 4, 5]
-print f(*stuff)
+mod = obj.modified
+print mod.strftime("%b %d %Y %I:%M %p")

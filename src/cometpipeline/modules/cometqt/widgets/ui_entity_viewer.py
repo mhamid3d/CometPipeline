@@ -320,7 +320,7 @@ class EntityViewer(QtWidgets.QWidget):
                 return
 
         self.setEntityType(currentType)
-        raise ValueError, "There is no such object in the data tree: {}".format(str(entityObject))
+        raise ValueError("There is no such object in the data tree: {}".format(str(entityObject)))
 
     def currentEntity(self):
         sel = self.entityTree.selectedItems()
@@ -426,16 +426,16 @@ class EntityViewer(QtWidgets.QWidget):
 
         filt.clear()
         filt.search(handler['entity'], type__ne='asset', label=shot, job=show)
+
         shotObject = handler['entity'].one(filt)
         if shotObject:
             self.setCurrentEntity(shotObject)
 
 
 class EntityPickerDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, setEnvOnClose=True):
+    def __init__(self, parent=None):
         super(EntityPickerDialog, self).__init__(parent=parent)
         self.setWindowTitle("Set Entity")
-        self._setEnvOnClose = setEnvOnClose
         self.entityViewer = EntityViewer()
         self.entityViewer.setContentsMargins(0, 0, 0, 0)
         self.entityViewer.setIsDialog(True)
@@ -452,45 +452,10 @@ class EntityPickerDialog(QtWidgets.QDialog):
         self.diagButtonBox.accepted.connect(self.accept)
         self.diagButtonBox.rejected.connect(self.reject)
 
-        self.load_previous()
-
-    def load_previous(self):
-
-        jobEnv = os.getenv("SHOW")
-        entityEnv = os.getenv("SHOT")
-        handler = mongorm.getHandler()
-        filt = mongorm.getFilter()
-        filt.search(handler['entity'], job=jobEnv, label=entityEnv)
-
-        entityObject = handler['entity'].one(filt)
-        filt.clear()
-
-        filt.search(handler['job'], label=jobEnv)
-        jobObject = handler['job'].one(filt)
-        filt.clear()
-
-        if not jobObject:
-            return
-
-        self.entityViewer.setCurrentJob(jobObject)
-
-        if not entityObject:
-            return
-
-        entityType = entityObject.get("type")
-
-        if entityType == "shot" or entityType == "sequence" or entityType == "job":
-            self.entityViewer.setEntityType(self.entityViewer.TYPE_PRODUCTION)
-        elif entityType == "asset":
-            self.entityViewer.setEntityType(self.entityViewer.TYPE_ASSETS)
-
-        for item in self.entityViewer.getAllItems():
-            if item.text(0) == entityObject.get("label"):
-                self.entityViewer.entityTree.setCurrentItem(item)
-                break
+        self.entityViewer.setFromEnvironment()
 
     def getSelection(self):
-        return self.entityViewer.entityTree.selectedItems()
+        return self.entityViewer.currentEntity()
 
 
 if __name__ == '__main__':

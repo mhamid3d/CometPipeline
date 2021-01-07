@@ -48,6 +48,7 @@ class EntityComboBox(QtWidgets.QPushButton):
         self.customContextMenuRequested.connect(self.contextMenu)
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self.entityMenu = EntityPickerMenu(parent=self)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:

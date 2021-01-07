@@ -195,10 +195,13 @@ class Version(DataObject, mongoengine.Document):
 
     # Required fields
     comment = mongoengine.StringField(required=True, dispName="Comment", icon=icon_paths.ICON_COMMENT_SML)
-    status = mongoengine.StringField(required=True, dispName="Status", choices=['pending', 'approved', 'declined'])
+    status = mongoengine.StringField(required=True, dispName="Status", choices=['pending', 'approved', 'declined'],
+                                     default='pending')
     version = mongoengine.IntField(required=True, dispName="Version")
     parent_uuid = mongoengine.StringField(required=True, dispName="Package UUID", visible=False)
-    state = mongoengine.StringField(required=True, dispName="State", visible=False, choices=['complete', 'working', 'failed'])
+    state = mongoengine.StringField(required=True, dispName="State", visible=False,
+                                    choices=['complete', 'working', 'failed'],
+                                    default='working')
 
     # Optional fields
     framerange = mongoengine.ListField(dispName="Frame Range")
@@ -268,8 +271,8 @@ class Dependency(DataObject, mongoengine.Document):
     INTERFACE_STRING = "dependency"
 
     # Required fields
-    source_version_uuid = mongoengine.StringField(required=True, dispName="Source Version UUID")
-    link_version_uuid = mongoengine.StringField(required=True, dispName="Link Version UUID")
+    source_version_uuid = mongoengine.StringField(required=True, dispName="Source Version UUID") # Parent
+    link_version_uuid = mongoengine.StringField(required=True, dispName="Link Version UUID") # Child (depends on parent)
 
     def children(self):
         return None

@@ -6,8 +6,26 @@ from cometpublish import package_util
 from cometqt.modelview.model import Model
 from cometqt.modelview.tree_view import TreeView
 from cometqt.modelview.datasource.package_datasource import PackageDataSource
-import mongorm
 import math
+
+
+class AbstractViewerMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None):
+        super(AbstractViewerMenu, self).__init__(parent=parent)
+
+        self.copyAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPY_LRG), "Copy")
+        self.copyPathAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPY_LRG), "Copy Path")
+        self.copyUuidAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPYUUID_LRG), "Copy UUID")
+        self.addSeparator()
+        self.expandSelAction = self.addAction("Expand Selection")
+        self.collapseSelAction = self.addAction("Collapse Selection")
+        self.expandAllAction = self.addAction("Expand All")
+        self.collapseAllAction = self.addAction("Collapse All")
+        self.addSeparator()
+        self.setStatusMenu = self.addMenu(QtGui.QIcon(icon_paths.ICON_MONITOR_LRG), "Set Status")
+        self.approvedAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_CHECKGREEN_LRG), "Approved")
+        self.pendingAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_INPROGRESS_LRG), "Pending")
+        self.declinedAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_XRED_LRG), "Declined")
 
 
 class PackageTypeNavigator(QtWidgets.QScrollArea):
@@ -214,6 +232,84 @@ class PaginatorWidget(QtWidgets.QFrame):
         self.pageButtonsGroup.button(1).setChecked(True)
 
 
+class PackageTree(TreeView):
+    def __init__(self, parent=None):
+        super(PackageTree, self).__init__(parent=parent)
+        # self.header().moveSection(0, 1)
+        # self.header().setFirstSectionMovable(True)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenu)
+
+    def contextMenu(self, pos):
+
+        selectedItems = []
+        for idx in self.selectedIndexes():
+            item = self.model().itemFromIndex(idx)
+            if hasattr(item, "dataObject"):
+                selectedItems.append(item)
+        selectedItems = list(set(selectedItems))
+        selectedItems = sorted(selectedItems, key=lambda i: self.model().indexFromItem(i).row())
+
+        if not selectedItems:
+            return
+
+        self._menu = AbstractViewerMenu(parent=self)
+        self.main_action = self._menu.exec_(self.mapToGlobal(pos))
+
+        if not self.main_action:
+            return
+
+        if self.main_action == self._menu.copyAction:
+            copyStr = "\n".join([x.dataObject.get("label") for x in selectedItems])
+            cb = QtWidgets.QApplication.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            cb.setText(copyStr, mode=cb.Clipboard)
+        elif self.main_action == self._menu.copyPathAction:
+            copyStr = "\n".join([x.dataObject.get("path") for x in selectedItems])
+            cb = QtWidgets.QApplication.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            cb.setText(copyStr, mode=cb.Clipboard)
+        elif self.main_action == self._menu.copyUuidAction:
+            copyStr = "\n".join([x.dataObject.get("uuid") for x in selectedItems])
+            cb = QtWidgets.QApplication.clipboard()
+            cb.clear(mode=cb.Clipboard)
+            cb.setText(copyStr, mode=cb.Clipboard)
+        elif self.main_action == self._menu.expandAllAction:
+            self.expandAll()
+        elif self.main_action == self._menu.collapseAllAction:
+            self.collapseAll()
+        elif self.main_action == self._menu.expandSelAction:
+            self.expand(self.selectedIndexes()[0])
+        elif self.main_action == self._menu.collapseSelAction:
+            self.collapse(self.selectedIndexes()[0])
+        elif self.main_action in [self._menu.approvedAction, self._menu.declinedAction, self._menu.pendingAction]:
+            statusMap = {
+                self._menu.approvedAction: 'approved',
+                self._menu.pendingAction: 'pending',
+                self._menu.declinedAction: 'declined'
+            }
+            statusStr = statusMap[self.main_action]
+            dataObjects = []
+            for sel in selectedItems:
+                if not hasattr(sel, "dataObject"):
+                    continue
+                do = sel.dataObject
+                if do._name == "Package" and do.latest():
+                    dataObjects.append(do.latest())
+                    continue
+                dataObjects.append(do)
+            dataObjects = set(dataObjects)
+
+            if not dataObjects:
+                return
+
+            for dataObject in dataObjects:
+                dataObject.status = statusStr
+                dataObject.save()
+
+            self.model().dataNeedsRefresh.emit()
+
+
 class PackageViewer(QtWidgets.QWidget):
 
     SEARCH_HEIGHT = 32
@@ -256,7 +352,7 @@ class PackageViewer(QtWidgets.QWidget):
         self.packageTypeNavigator = PackageTypeNavigator(parent=self)
         self.packageViewportLayout.addWidget(self.packageTypeNavigator)
 
-        self.packageTree = TreeView(parent=self)
+        self.packageTree = PackageTree(parent=self)
         self.model = Model()
         self.model.setAlternatingRowColors(True)
         self.dataSource = PackageDataSource()
@@ -265,13 +361,10 @@ class PackageViewer(QtWidgets.QWidget):
         self.model.setDataSource(self.dataSource)
         self.packageTree.setModel(self.model)
         self.packageViewportLayout.addWidget(self.packageTree)
-        # self.packageTree.header().moveSection(0, 1)
-        # self.packageTree.header().setFirstSectionMovable(True)
         self.packageViewportLayout.addWidget(self.paginatorWidget)
 
         self.packageTypeNavigator.filteredTypesChanged.connect(self.populate_viewport)
         self.refreshButton.clicked.connect(lambda: self.dataSource.setNeedToRefresh(True))
-        self.model.dataRefreshed.connect(self.packageTree.header().update)
 
     @property
     def productionPage(self):

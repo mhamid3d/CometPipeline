@@ -64,7 +64,7 @@ class ModelItem(QtGui.QStandardItem):
         return self._itemDataLen
 
     def __str__(self):
-        return str([str(self.data(i) for i in range(self._itemDataLen))])
+        return str("ModelItem({})".format(self._dataObject))
 
     def __repr__(self):
         return str(self)

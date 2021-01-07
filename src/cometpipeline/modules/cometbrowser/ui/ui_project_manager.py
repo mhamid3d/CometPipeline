@@ -459,6 +459,10 @@ class ProductionManagerPage(QtWidgets.QWidget):
         self.entityViewer.populate()
 
     def remove_selection(self):
+
+        handler = mongorm.getHandler()
+        flt = mongorm.getFilter()
+
         entitySelection = self.entityViewer.entityTree.selectedItems()
         entityIsJob = True
         if entitySelection:
@@ -484,14 +488,39 @@ class ProductionManagerPage(QtWidgets.QWidget):
         confirmResult = remove_confirm_dialog(entitySelection.dataObject).exec_()
 
         if confirmResult == QtWidgets.QMessageBox.Apply and cqtutil.doLoginConfirm():
-            recursiveChildren = entitySelection.dataObject.recursive_children()
-            recursiveChildren.append_object(entitySelection.dataObject)
-            recursiveChildren.sort(sort_field='jobpath')
+            # Recursive Entities
+            allEntities = entitySelection.dataObject.recursive_children()
+            allEntities.append_object(entitySelection.dataObject)
+            allEntities.sort(sort_field='jobpath')
+
+            allPackages = mongorm.createContainer(handler['package'])
+            allVersions = mongorm.createContainer(handler['version'])
+            allContent = mongorm.createContainer(handler['content'])
+            allDependencies = mongorm.createContainer(handler['dependency'])
+
+            for entity in allEntities:
+                flt.search(handler['package'], job=entity.get("job"), parent_uuid=entity.getUuid())
+                result = handler['package'].all(flt)
+                allPackages.extend(result)
+            for package in allPackages:
+                allVersions.extend(package.children())
+            for version in allVersions:
+                allContent.extend(version.children())
+                flt.clear()
+                flt.search(handler['dependency'], job=version.get("job"), source_version_uuid=version.getUuid())
+                allDependencies.extend(handler['dependency'].all(flt))
+                flt.clear()
+                flt.search(handler['dependency'], job=version.get("job"), link_version_uuid=version.getUuid())
+                allDependencies.extend(handler['dependency'].all(flt))
+
             prunePaths = []
-            for obj in recursiveChildren:
-                prunePaths.append(obj.get("path"))
-                LOGGER.info("Removing database entry: {}".format(obj))
-                obj.delete()
+
+            for objects in [allEntities, allPackages, allVersions, allContent, allDependencies]:
+                for obj in objects:
+                    if not objects.interfaceName() == "Dependency":
+                        prunePaths.append(obj.get("path"))
+                    LOGGER.info("Removing database entry: {}".format(obj))
+                    obj.delete()
 
             for path in prunePaths:
                 if os.path.exists(path):
@@ -555,7 +584,8 @@ class DangerZonePage(QtWidgets.QWidget):
             all_objects.append(self._currentJob)
 
         for obj in all_objects:
-            prune_paths.append(obj.get("path"))
+            if not obj._name == "Dependency":
+                prune_paths.append(obj.get("path"))
             LOGGER.info("Removing database entry: {}".format(obj))
             obj.delete()
 

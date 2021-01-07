@@ -145,6 +145,10 @@ packageTypes:
       desc: Katana Module
   - LGTR:
       desc: Light Rig
+      required:
+        - task
+      optional:
+        - label
   - LOOK:
       desc: Asset Look File
   - MODEL:

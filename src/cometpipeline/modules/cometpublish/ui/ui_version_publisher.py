@@ -363,7 +363,7 @@ class VersionPublisher(QtWidgets.QDialog):
                 missingRequiredFields.append(nameField)
 
         if missingRequiredFields:
-            raise RuntimeError, "Missing required fields: {}".format(", ".join(missingRequiredFields))
+            raise RuntimeError("Missing required fields: {}".format(", ".join(missingRequiredFields)))
 
         # Check if package exists, if not, create it
 
