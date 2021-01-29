@@ -232,13 +232,14 @@ class Version(DataObject, mongoengine.Document):
 
 class Content(DataObject, mongoengine.Document):
 
-    _name = 'content'
+    _name = 'Content'
     meta = {'collection': 'content'}
     INTERFACE_STRING = "content"
 
     # Required fields
     parent_uuid = mongoengine.StringField(required=True, dispName="Version UUID", visible=False)
     format = mongoengine.StringField(required=True, dispName="Format")
+    created_by = mongoengine.StringField(required=False)
 
     # Optional fields
     resolution = mongoengine.ListField(dispName="Resolution")

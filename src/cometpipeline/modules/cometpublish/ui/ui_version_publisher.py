@@ -109,7 +109,7 @@ class VersionPublisher(QtWidgets.QDialog):
     @property
     def packageType(self):
         currentIdx = self.packageTypeComboBox.currentIndex()
-        return package_util.getPackageTypesDict().items()[currentIdx]
+        return list(package_util.getPackageTypesDict().items())[currentIdx]
 
     @property
     def packageTypeNameFields(self):
@@ -117,9 +117,9 @@ class VersionPublisher(QtWidgets.QDialog):
         requiredFields = []
         optionalFields = []
         dict = {}
-        if pkgType[1].has_key('required'):
+        if 'required' in pkgType[1]:
             requiredFields = pkgType[1]['required']
-        if pkgType[1].has_key('optional'):
+        if 'optional' in pkgType[1]:
             optionalFields = pkgType[1]['optional']
         for field in requiredFields:
             data = package_util.getNameFieldsDict()[field]
@@ -132,7 +132,7 @@ class VersionPublisher(QtWidgets.QDialog):
 
         orderedDict = OrderedDict()
         for field in package_util.getNameFieldsDict().keys():
-            if dict.has_key(field):
+            if field in dict:
                 orderedDict[field] = dict[field]
 
         return orderedDict
@@ -196,11 +196,18 @@ class VersionPublisher(QtWidgets.QDialog):
         self.versionComboBox = VersionComboBox(parent=self)
         self.versionComboBox.setSizePolicy(self.entityComboBox.sizePolicy())
 
+        self.autoStatusComboBox = QtWidgets.QComboBox()
+        self.autoStatusComboBox.addItem(QtGui.QIcon(icon_paths.ICON_INPROGRESS_LRG), "Pending")
+        self.autoStatusComboBox.addItem(QtGui.QIcon(icon_paths.ICON_CHECKGREEN_LRG), "Approved")
+        self.autoStatusComboBox.addItem(QtGui.QIcon(icon_paths.ICON_XRED_LRG), "Declined")
+        self.autoStatusComboBox.setSizePolicy(self.entityComboBox.sizePolicy())
+
         self.contextGroupLayout.addRow("JOB AND ENTITY", self.entityComboBox)
         self.contextGroupLayout.addRow("PACKAGE TYPE", self.packageTypeComboBox)
         self.contextGroupLayout.addRow("EXISTING PACKAGE", self.existingPackageCombo)
         self.contextGroupLayout.addRow("NAME FIELDS", self.nameFieldsGroupBox)
         self.contextGroupLayout.addRow("VERSION", self.versionComboBox)
+        self.contextGroupLayout.addRow("AUTO STATUS", self.autoStatusComboBox)
 
         self.mainLayout.addWidget(self.versionLabelGroupBox)
         self.mainLayout.addWidget(self.contextGroupBox)
@@ -273,9 +280,9 @@ class VersionPublisher(QtWidgets.QDialog):
             widgetStr = nfData['widget']
             widget = getattr(QtWidgets, widgetStr)()
             widget.setFixedHeight(32)
-            if nfData.has_key('editable'):
+            if 'editable' in nfData:
                 widget.setEditable(nfData['editable'])
-            if nfData.has_key('options'):
+            if 'options' in nfData:
                 widget.addItems(sorted(nfData['options']))
 
             self._nameFieldWidgetMap[nameField] = widget
@@ -313,7 +320,7 @@ class VersionPublisher(QtWidgets.QDialog):
         labelMap = selectedPackage.get("labelmap")
         for nameField in self.packageTypeNameFields:
             widget = self._nameFieldWidgetMap[nameField]
-            value = labelMap[nameField] if labelMap.has_key(nameField) else ""
+            value = labelMap[nameField] if nameField in labelMap else ""
             widget.blockSignals(True)
             self.setValueByWidget(widget, value)
             widget.blockSignals(False)
@@ -403,6 +410,8 @@ class VersionPublisher(QtWidgets.QDialog):
             status="pending",
             state="complete"
         )
+        status = ['pending', 'approved', 'declined']
+        versionObject.status = status[self.autoStatusComboBox.currentIndex()]
         versionObject.save()
         cometpublish.build_version_directory(versionObject)
 

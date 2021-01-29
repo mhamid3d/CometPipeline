@@ -69,6 +69,9 @@ class ModelItem(QtGui.QStandardItem):
     def __repr__(self):
         return str(self)
 
+    def __hash__(self):
+        return id(self)
+
     def copyData(self, otherItem):
         for column in range(len(otherItem)):
             for role in [QtCore.Qt.DisplayRole, QtCore.Qt.DecorationRole, QtCore.Qt.BackgroundRole,

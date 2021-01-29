@@ -51,7 +51,7 @@ class PackageTypeNavigator(QtWidgets.QScrollArea):
         self.setFrameStyle(QtWidgets.QFrame.NoFrame)
         self.packageTypeButtonGroup = QtWidgets.QButtonGroup()
         self.packageTypeButtonGroup.setExclusive(False)
-        self.packageTypes = package_util.getPackageTypesDict().keys()
+        self.packageTypes = list(package_util.getPackageTypesDict().keys())
         self.packageTypes.insert(0, "All")
         self.defaultButtonStyle = """
                 QPushButton{
@@ -305,7 +305,7 @@ class PackageTree(TreeView):
 
             for dataObject in dataObjects:
                 dataObject.status = statusStr
-                dataObject.save()
+                dataObject.save(update_time=False)
 
             self.model().dataNeedsRefresh.emit()
 

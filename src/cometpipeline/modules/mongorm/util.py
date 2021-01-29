@@ -27,4 +27,4 @@ def getCurrentUser():
         if user_object:
             return user_object
 
-    raise KeyError, "Could not find a valid user"
+    raise KeyError("Could not find a valid user")

@@ -5,7 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/pipeline/modules" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/cometpipeline/modules" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 2.7 (py27base)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.7 (py37base)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">

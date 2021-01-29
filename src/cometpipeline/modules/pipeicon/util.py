@@ -1,4 +1,4 @@
-import icon_paths
+from . import icon_paths
 import os
 
 

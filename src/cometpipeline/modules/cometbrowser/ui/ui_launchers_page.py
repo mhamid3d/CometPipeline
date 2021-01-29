@@ -159,7 +159,7 @@ class LaunchersPage(QtWidgets.QWidget):
         self.appsButtonGroup.checkedButton().launch_app()
 
     def setup_ui(self):
-        app_config_file = file(cometlauncher.APPS_CONFIG, "r")
+        app_config_file = open(cometlauncher.APPS_CONFIG, "r")
         data = yaml.load(app_config_file, Loader=yaml.FullLoader)
 
         for idx, (app, appdata) in enumerate(sorted(data['apps'].items())):

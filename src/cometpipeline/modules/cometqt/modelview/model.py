@@ -227,7 +227,7 @@ class Model(QtCore.QAbstractItemModel):
             self.setColumnCount(0)
 
     def requestRefresh(self):
-        if self._dataSource and (reload or self._dataSource.needToRefresh):
+        if self._dataSource and self._dataSource.needToRefresh:
             self._dataSource.setNeedToRefresh(False)
 
         self.dataAboutToBeRefreshed.emit()

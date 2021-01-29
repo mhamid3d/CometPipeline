@@ -1,5 +1,5 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from top_header import TopHeaderView
+from .top_header import TopHeaderView
 
 
 class TreeDelegate(QtWidgets.QStyledItemDelegate):

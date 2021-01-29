@@ -46,8 +46,7 @@ class PackageDataSource(AbstractDataSource):
         flt.search(handler['user'], uuid=user_uuid)
         user_object = handler['user'].one(flt)
         if not user_object:
-            return [(QtCore.Qt.DisplayRole, "Invalid User"),
-                    (QtCore.Qt.DecorationRole, QtGui.QPixmap(icon_paths.ICON_USER_SML).scaledToHeight(20, QtCore.Qt.SmoothTransformation))]
+            return []
         data.append((QtCore.Qt.DisplayRole, user_object.fullName()))
 
         userIcon = AvatarLabel(size=20, data=QtCore.QByteArray(user_object.avatar.read()))
@@ -110,6 +109,13 @@ class PackageDataSource(AbstractDataSource):
             data.append((QtCore.Qt.DecorationRole, compPixmap))
             data.append((QtCore.Qt.DisplayRole, str(dataObject.get("label"))))
 
+        elif dataObject.interfaceName() == "Content":
+            pixmap = QtGui.QPixmap(icon_paths.ICON_FILE_LRG)
+            pixmap = pixmap.scaledToHeight(16, QtCore.Qt.SmoothTransformation)
+
+            data.append((QtCore.Qt.DecorationRole, pixmap))
+            data.append((QtCore.Qt.DisplayRole, str(dataObject.get("label"))))
+
         return data
 
     def configure_created(self, dataObject):
@@ -136,21 +142,21 @@ class PackageDataSource(AbstractDataSource):
         itemData = defaultdict(dict)
 
         for idx, field in enumerate(self._columnNameMap.keys()):
-            if mvcommon.DB_FIELD_TYPE_MAP.has_key(field):
+            if field in mvcommon.DB_FIELD_TYPE_MAP:
                 itemData[idx][mvcommon.ROLE_DATA_TYPE] = mvcommon.DB_FIELD_TYPE_MAP[field]
 
-            if self.specialTypesMap.has_key(field):
+            if field in self.specialTypesMap:
                 for role, value in self.specialTypesMap[field](dataObject):
                     itemData[idx][role] = value
-            elif mvcommon.DB_FIELD_TYPE_MAP.has_key(field) and mvcommon.DB_FIELD_READABLE_MAP.has_key(mvcommon.DB_FIELD_TYPE_MAP[field]):
+            elif field in mvcommon.DB_FIELD_TYPE_MAP and mvcommon.DB_FIELD_TYPE_MAP[field] in mvcommon.DB_FIELD_READABLE_MAP:
                 data = mvcommon.DB_FIELD_READABLE_MAP[mvcommon.DB_FIELD_TYPE_MAP[field]](dataObject.get(field))
                 for role, value in data:
                     itemData[idx][role] = value
             else:
                 itemData[idx][QtCore.Qt.DisplayRole] = str(dataObject.get(field)) if dataObject.get(field) else None
 
-        for col, data in itemData.items():
-            for role, value in data.items():
+        for col, data in list(itemData.items()):
+            for role, value in list(data.items()):
                 if not value:
                     itemData[col][role] = ""
                 itemData[col][QtCore.Qt.ToolTipRole] = itemData[col][QtCore.Qt.DisplayRole]
@@ -164,7 +170,7 @@ class PackageDataSource(AbstractDataSource):
             dataObject = dataObject.latest()
         if dataObject:
             state = dataObject.get("state")
-            if stateColorMap.has_key(state):
+            if state in stateColorMap:
                 for col in itemData.keys():
                     itemData[col][QtCore.Qt.TextColorRole] = stateColorMap[state]
 

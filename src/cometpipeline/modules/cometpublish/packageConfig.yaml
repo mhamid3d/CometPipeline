@@ -153,6 +153,10 @@ packageTypes:
       desc: Asset Look File
   - MODEL:
       desc: Asset Model
+      optional:
+        - label
+        - var
+        - lod
   - OUT:
       desc: Presentable 2D Image Sequence
       required:

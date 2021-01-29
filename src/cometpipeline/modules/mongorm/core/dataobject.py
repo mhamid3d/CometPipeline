@@ -71,8 +71,8 @@ class AbstractDataObject(object):
         result = self.dataInterface().get(self.uuid)
         return True if result else False
 
-    def save(self):
-        if self.is_saved():
+    def save(self, update_time=True):
+        if self.is_saved() and update_time:
             self.modified = datetime.datetime.now()
         mongoengine.Document.save(self)
 
