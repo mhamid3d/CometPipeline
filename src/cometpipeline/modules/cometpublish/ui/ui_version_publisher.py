@@ -4,6 +4,7 @@ from cometqt import util as cqtutil
 from cometpublish import package_util
 from pipeicon import icon_paths
 from collections import OrderedDict
+import mongorm
 from mongorm import util as mgutil
 import cometpublish
 
@@ -105,6 +106,7 @@ class VersionPublisher(QtWidgets.QDialog):
         for nameField in package_util.getNameFieldsDict():
             self._nameFieldData[nameField] = ""
         self.setup_ui()
+        self._post_process = None
 
     @property
     def packageType(self):
@@ -156,6 +158,15 @@ class VersionPublisher(QtWidgets.QDialog):
     def versionPublishName(self):
         version = "v{}".format(str(self.versionComboBox.getSelectedVersion()).zfill(3)) or "[version]"
         return "_".join([self.packagePublishName, version])
+
+    @property
+    def post_process(self):
+        return self._post_process
+
+    @post_process.setter
+    def post_process(self, func):
+        assert callable(func), "Post Process must be a callable function"
+        self._post_process = func
 
     def setup_ui(self):
         self.versionLabelGroupBox = QtWidgets.QGroupBox("Version Name")
@@ -414,6 +425,14 @@ class VersionPublisher(QtWidgets.QDialog):
         versionObject.status = status[self.autoStatusComboBox.currentIndex()]
         versionObject.save()
         cometpublish.build_version_directory(versionObject)
+
+        kwargs = {
+            'packageObject': packageObject,
+            'versionObject': versionObject,
+            'entityObject': self.entityComboBox.getSelectedEntity()
+        }
+        if self.post_process(**kwargs):
+            self.close()
 
 
 if __name__ == '__main__':

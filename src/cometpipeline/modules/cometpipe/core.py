@@ -1,3 +1,5 @@
+from pipeicon import icon_paths
+
 DEFAULT_ROOT_ENTITIES = [
     'char',
     'crowd',
@@ -26,4 +28,13 @@ PACKAGE_TYPES = {
     'SCAN': 'Plate from source',
     'TEX': 'Asset Texture',
     'TRACK': '2D Camera Track',
+}
+
+FORMAT_TO_ICON = {
+    'mb': icon_paths.ICON_FILEMB_LRG,
+    'ma': icon_paths.ICON_FILEMA_LRG,
+    'bif': icon_paths.ICON_FILEBIF_LRG,
+    'mel': icon_paths.ICON_FILEMEL_LRG,
+    'py': icon_paths.ICON_FILEPY_LRG,
+    'abc': icon_paths.ICON_ALEMBIC2_LRG
 }

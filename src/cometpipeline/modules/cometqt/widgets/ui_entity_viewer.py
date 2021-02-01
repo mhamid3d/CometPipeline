@@ -30,6 +30,157 @@ class EntityMenu(QtWidgets.QMenu):
         self.copyUuidAction.setIcon(QtGui.QIcon(icon_paths.ICON_COPYUUID_LRG))
 
 
+class TreeSelectionModel(QtCore.QItemSelectionModel):
+    STATE_UNSELECTED = 0
+    STATE_PARTIALLY_SELECTED = 1
+    STATE_SELECTED = 2
+
+    refreshRequested = QtCore.Signal()
+
+    def __init__(self, model, parent=None):
+        """
+        """
+        super(TreeSelectionModel, self).__init__(model, parent)
+        self.__propagateSelection = True
+        self.__showPartiallySelected = True
+        self.__lastselectionflags = 0
+
+    def __propagateSelectionDown(self, selection):
+        childSelection = QtCore.QItemSelection()
+        indexQueue = selection.indexes()
+        while indexQueue:
+            index = indexQueue.pop(0)
+            if index.isValid():
+                numChildren = self.model().rowCount(index)
+                childIndexes = [self.model().index(row, 0, index) for row in range(numChildren)]
+                if childIndexes:
+                    # add child indexes to the selection
+                    childSelection.append(QtCore.QItemSelectionRange(childIndexes[0], childIndexes[-1]))
+                    indexQueue.extend(childIndexes)
+        return childSelection
+
+    def _propagateSelectionUp(self, selection, command):
+        parentSelection = QtCore.QItemSelection()
+        # filter out duplicates by unique id because pyside QModelIndexes are not hashable, and cannot be added to a set
+        parentIndexes = map(QtCore.QModelIndex.parent, selection.indexes())
+        parentIndexes = dict(zip(map(self.model().uniqueIdFromIndex, parentIndexes), parentIndexes)).values()
+        for index in parentIndexes:
+            while index.isValid():
+                if not (selection.contains(index) or parentSelection.contains(index)):
+                    if command & QtCore.QItemSelectionModel.Deselect:
+                        # children are being deselected, deselect parents too
+                        parentSelection.select(index, index)
+                    elif command & QtCore.QItemSelectionModel.Select:
+                        # children are being selected, select parent if all children are now selected
+                        numChildren = self.model().rowCount(index)
+                        if numChildren:
+                            numSelected = 0
+                            for row in range(numChildren):
+                                childIndex = self.model().index(row, 0, index)
+                                if selection.contains(childIndex) or \
+                                        parentSelection.contains(childIndex) or \
+                                        (not (command & QtCore.QItemSelectionModel.Clear) and self.isSelected(
+                                            childIndex)):
+                                    numSelected += 1
+                                else:
+                                    break
+                            if numSelected == numChildren:
+                                # all children are selected, select parent too
+                                parentSelection.select(index, index)
+                index = index.parent()
+        return parentSelection
+
+    def setPropagateSelection(self, enabled):
+
+        self.__propagateSelection = bool(enabled)
+
+    def propagateSelection(self):
+        return self.__propagateSelection
+
+    def setShowPartiallySelected(self, state):
+        self.__showPartiallySelected = bool(state)
+
+    def showPartiallySelected(self):
+        return self.__showPartiallySelected
+
+    def setSelectionStates(self, indexes, previous=None):
+
+        return
+
+        # model = self.model()
+        # role = common.ROLE_SELECTION_STATE
+        #
+        # def selectUpstream(item, state=self.STATE_PARTIALLY_SELECTED):
+        #     parent = item.parent()
+        #     while parent is not None:
+        #         parent.setData(state, role=role)
+        #         parent = parent.parent()
+        #
+        # itemFromIndex = model.itemFromIndex
+        # # if there is a previous selection, unselect it
+        # if previous is not None:
+        #     for index in previous:
+        #         item = itemFromIndex(index)
+        #         # always deselect upstream, in case self.__showPartiallySelected changes between selections
+        #         selectUpstream(item, state=self.STATE_UNSELECTED)
+        #         item.setData(self.STATE_UNSELECTED, role=role)
+        # # select new
+        # for item in set(map(itemFromIndex, indexes)):
+        #     # if self.__showPartiallySelected is True, partial-select parents until we hit the root node
+        #     if self.__showPartiallySelected is True:
+        #         selectUpstream(item, state=self.STATE_PARTIALLY_SELECTED)
+        #     item.setData(self.STATE_SELECTED, role=role)
+        # # emit model data changed signal to trigger view repaint
+        # model.dataChanged.emit(model.index(0, 0), model.index(model.rowCount(), model.columnCount()))
+
+    def getSelectionFlags(self):
+        return self.__lastselectionflags
+
+    def select(self, selection, command):
+        if self.__propagateSelection:
+            # propagate selection to children/parents of selected indexes
+            if isinstance(selection, QtCore.QModelIndex):
+                selection = QtCore.QItemSelection(selection, selection)
+            # propagate selection down to children
+            childSelection = self.__propagateSelectionDown(selection)
+            # propagate selection up to parents
+            # parentSelection = self._propagateSelectionUp(selection, command)
+            selection.merge(childSelection, QtCore.QItemSelectionModel.SelectCurrent)
+            # selection.merge(parentSelection, QtCore.QItemSelectionModel.SelectCurrent)
+
+        # NOTE: the 'command' parameter is really the 'selectionFlags'
+        self.__lastselectionflags = command
+        if (command & QtCore.QItemSelectionModel.Columns):
+            # NOTE: I'm not sure anyone ever has this set but just in
+            # case for compatibility. In future we should apptrack
+            # this and if no one uses column seleciton then this
+            # option should be removed.
+            previousSelection = self.selectedIndexes()
+        else:
+            # This saves on many many duplicates in the selection
+            previousSelection = self.selectedRows()
+
+        QtCore.QItemSelectionModel.select(self, selection, command)
+
+        # NOTE: the 'command' parameter is really 'selectionFlags'
+        if (command & QtCore.QItemSelectionModel.Columns):
+            # NOTE: I'm not sure anyone ever has this set but just in
+            # case for compatibility. In future we should apptrack
+            # this and if no one uses column seleciton then this
+            # option should be removed.
+            selected_now = self.selectedIndexes()
+        else:
+            # This saves on many many duplicates in the selection
+            selected_now = self.selectedRows()
+
+        self.setSelectionStates(selected_now, previous=previousSelection)
+
+        self.requestRefresh()
+
+    def requestRefresh(self):
+        self.refreshRequested.emit()
+
+
 class EntityTree(QtWidgets.QTreeWidget):
     def __init__(self, parent):
         super(EntityTree, self).__init__(parent=parent)
@@ -41,6 +192,9 @@ class EntityTree(QtWidgets.QTreeWidget):
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
+        self.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
+        self.setSelectionModel(TreeSelectionModel(model=self.model()))
+        self.itemSelectionChanged = self.selectionModel().selectionChanged
 
     def contextMenu(self, pos):
         selectedItems = [x for x in self.selectedItems() if hasattr(x, "dataObject")]
@@ -305,27 +459,55 @@ class EntityViewer(QtWidgets.QWidget):
         self.jobComboBox.blockSignals(False)
         self.populate()
 
-    def setCurrentEntity(self, entityObject):
+    def setSelectedEntities(self, entities=[]):
+        if not entities:
+            self.entityTree.setCurrentItem(None)
+            return
 
         currentType = self.entityType
 
-        if entityObject.get("type") == "asset" and not self.entityType == self.TYPE_ASSETS:
-            self.setEntityType(self.TYPE_ASSETS)
-        elif not entityObject.get("type") == "asset" and not self.entityType == self.TYPE_PRODUCTION:
-            self.setEntityType(self.TYPE_PRODUCTION)
+        validAssetTypes = [
+            ['asset', 'job'],
+            ['asset']
+        ]
+        validProductionTypes = [
+            ['shot', 'sequence', 'job'],
+            ['shot'],
+            ['shot', 'sequence'],
+            ['sequence'],
+            ['shot', 'job'],
+            ['sequence', 'job']
+        ]
+        validAssetTypes = [sorted(x) for x in validAssetTypes]
+        validProductionTypes = [sorted(x) for x in validProductionTypes]
 
+        entityCombination = list(set([x.get("type") for x in entities]))
+        entityCombination.sort()
+
+        if entityCombination == ['job']:
+            pass
+        elif entityCombination in validAssetTypes:
+            if not self.entityType == self.TYPE_ASSETS:
+                self.setEntityType(self.TYPE_ASSETS)
+        elif entityCombination in validProductionTypes:
+            if not self.entityType == self.TYPE_PRODUCTION:
+                self.setEntityType(self.TYPE_PRODUCTION)
+        else:
+            raise RuntimeError("Entities must share the same type (Production or Asset). Given: {}".format(entityCombination))
+
+        selection = QtCore.QItemSelection()
         for item in self.entityTree.getAllItems():
-            if item.dataObject == entityObject:
-                self.entityTree.setCurrentItem(item)
-                return
+            if item.dataObject in entities:
+                selection.append(QtCore.QItemSelectionRange(self.entityTree.indexFromItem(item)))
 
-        self.setEntityType(currentType)
-        raise ValueError("There is no such object in the data tree: {}".format(str(entityObject)))
+        self.entityTree.selectionModel().select(selection, QtCore.QItemSelectionModel.ClearAndSelect)
 
-    def currentEntity(self):
+        return
+
+    def selectedEntities(self):
         sel = self.entityTree.selectedItems()
         if sel:
-            return sel[0].dataObject
+            return [x.dataObject for x in sel]
         else:
             return None
 
@@ -349,6 +531,8 @@ class EntityViewer(QtWidgets.QWidget):
         handler = mongorm.getHandler()
         filter = mongorm.getFilter()
 
+        selection = self.selectedEntities()
+
         self.entityTree.clear()
 
         if jobObject:
@@ -366,6 +550,9 @@ class EntityViewer(QtWidgets.QWidget):
 
         self.doSearch()
         self.entityTree.expandAll()
+
+        self.setSelectedEntities(selection)
+
         QtWidgets.QApplication.restoreOverrideCursor()
 
     def recursive_populate(self, rootTreeItem):
@@ -429,7 +616,7 @@ class EntityViewer(QtWidgets.QWidget):
 
         shotObject = handler['entity'].one(filt)
         if shotObject:
-            self.setCurrentEntity(shotObject)
+            self.setSelectedEntities([shotObject])
 
 
 class EntityPickerDialog(QtWidgets.QDialog):
@@ -455,7 +642,7 @@ class EntityPickerDialog(QtWidgets.QDialog):
         self.entityViewer.setFromEnvironment()
 
     def getSelection(self):
-        return self.entityViewer.currentEntity()
+        return self.entityViewer.selectedEntities()
 
 
 if __name__ == '__main__':

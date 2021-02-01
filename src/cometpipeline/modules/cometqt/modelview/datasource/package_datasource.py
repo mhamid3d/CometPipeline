@@ -4,6 +4,7 @@ from cometqt.modelview.datasource.abstract_datasource import AbstractDataSource
 from cometqt.modelview import common as mvcommon
 from collections import OrderedDict, defaultdict
 from cometqt.widgets.ui_user_avatar import AvatarLabel
+from cometpipe.core import FORMAT_TO_ICON
 from pipeicon import icon_paths
 import mongorm
 
@@ -110,7 +111,8 @@ class PackageDataSource(AbstractDataSource):
             data.append((QtCore.Qt.DisplayRole, str(dataObject.get("label"))))
 
         elif dataObject.interfaceName() == "Content":
-            pixmap = QtGui.QPixmap(icon_paths.ICON_FILE_LRG)
+            fileIcon = icon_paths.ICON_FILE_LRG if str(dataObject.get("format")) not in FORMAT_TO_ICON else FORMAT_TO_ICON[str(dataObject.get("format"))]
+            pixmap = QtGui.QPixmap(fileIcon)
             pixmap = pixmap.scaledToHeight(16, QtCore.Qt.SmoothTransformation)
 
             data.append((QtCore.Qt.DecorationRole, pixmap))

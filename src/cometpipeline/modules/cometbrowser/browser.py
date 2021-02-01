@@ -5,6 +5,7 @@ from cometbrowser.ui.ui_launchers_page import LaunchersPage
 from cometqt.widgets.ui_base_main_window import BaseMainWindow
 from cometqt import util as pqtutil
 from pipeicon import icon_paths
+from mongorm.core.datacontainer import DataContainer
 import mongorm
 import os
 
@@ -118,8 +119,6 @@ class ProjectBrowserMain(BaseMainWindow):
 
     def doCloseBrowser(self):
         self.saveSettings()
-        return
-        #TODO: figure out why pymongo errors when quitting thread
         notificationThread = self.top_interface_bar.notificationButton.notificationThread
         notificationReceived = self.top_interface_bar.notificationButton.notificationReceived
         notificationThread.notificationReceived.disconnect(notificationReceived)
@@ -129,9 +128,10 @@ class ProjectBrowserMain(BaseMainWindow):
         self.settings.beginGroup("project")
         self.settings.setValue("current_job", self._currentJob.label if self._currentJob else "none")
         self.settings.setValue("entity_type", self.productionPage.entityViewer.entityType)
-        curr_entity = self.productionPage.entityViewer.entityTree.currentItem()
-        if curr_entity:
-            self.settings.setValue("current_entity", curr_entity.text(0))
+        entities = self.productionPage.entityViewer.selectedEntities()
+        if entities:
+            entities = [x.getUuid() for x in entities]
+            self.settings.setValue("current_entity", entities)
         else:
             self.settings.setValue("current_entity", "none")
 
@@ -153,19 +153,18 @@ class ProjectBrowserMain(BaseMainWindow):
             jobObject = handler['job'].one(filter)
             if jobObject:
                 self.setCurrentJob(jobObject)
+                entity_type = self.settings.value("project/entity_type")
+                self.productionPage.entityViewer.setEntityType(entity_type)
+
+                current_entity = self.settings.value("project/current_entity")
+                if current_entity:
+                    data = handler['entity'].get(current_entity)
+                    if data:
+                        if not isinstance(data, DataContainer):
+                            data = [data]
+                        self.productionPage.entityViewer.setSelectedEntities(data)
             else:
                 self.setCurrentJob(None)
-
-        entity_type = self.settings.value("project/entity_type")
-        self.productionPage.entityViewer.setEntityType(entity_type)
-
-        current_entity = self.settings.value("project/current_entity")
-        if not current_entity == "none":
-            os.environ['SHOT'] = current_entity
-            for item in self.productionPage.entityViewer.getAllItems():
-                if item.text(0) == current_entity:
-                    self.productionPage.entityViewer.entityTree.setCurrentItem(item)
-                    break
 
         filteredPackageTypes = self.settings.value("packageViewer/filteredPackageTypes")
         if filteredPackageTypes:

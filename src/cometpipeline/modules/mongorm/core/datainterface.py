@@ -85,9 +85,16 @@ class DataInterface(object):
     def get(self, uuid):
         """Get Data object that matches uuid value of this DataInterface type"""
         import mongorm
+        from mongorm.core.datacontainer import DataContainer
         df = mongorm.getFilter()
-        df.search(self, uuid=uuid)
-        return self.one(df)
+        if isinstance(uuid, str):
+            df.search(self, uuid=uuid)
+            return self.one(df)
+        elif isinstance(uuid, list):
+            dataContainer = mongorm.createContainer(self)
+            for uid in uuid:
+                dataContainer.append_object(self.get(uid))
+            return dataContainer
 
     def name(self):
         return self._name

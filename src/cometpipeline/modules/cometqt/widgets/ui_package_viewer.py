@@ -7,6 +7,8 @@ from cometqt.modelview.model import Model
 from cometqt.modelview.tree_view import TreeView
 from cometqt.modelview.datasource.package_datasource import PackageDataSource
 import math
+import subprocess
+import os
 
 
 class AbstractViewerMenu(QtWidgets.QMenu):
@@ -26,6 +28,11 @@ class AbstractViewerMenu(QtWidgets.QMenu):
         self.approvedAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_CHECKGREEN_LRG), "Approved")
         self.pendingAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_INPROGRESS_LRG), "Pending")
         self.declinedAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_XRED_LRG), "Declined")
+        self.addSeparator()
+        self.openInMenu = self.addMenu("Open In")
+        self.openInExplorerAction = self.openInMenu.addAction("Explorer")
+        self.openInTerminalAction = self.openInMenu.addAction("Terminal")
+        self.openInMenu.addSeparator()
 
 
 class PackageTypeNavigator(QtWidgets.QScrollArea):
@@ -308,6 +315,15 @@ class PackageTree(TreeView):
                 dataObject.save(update_time=False)
 
             self.model().dataNeedsRefresh.emit()
+        elif self.main_action in [self._menu.openInExplorerAction, self._menu.openInTerminalAction]:
+            filePaths = [x.dataObject.get("path") for x in selectedItems]
+            for path in filePaths:
+                if self.main_action == self._menu.openInExplorerAction:
+                    subprocess.Popen(["nemo", path])
+                elif self.main_action == self._menu.openInTerminalAction:
+                    if os.path.isfile(path):
+                        path = os.path.abspath(os.path.join(path, os.pardir))
+                    subprocess.Popen(["gnome-terminal", "--working-directory={}".format(path)])
 
 
 class PackageViewer(QtWidgets.QWidget):
@@ -376,11 +392,13 @@ class PackageViewer(QtWidgets.QWidget):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         filteredTypes = self.packageTypeNavigator.getFilteredTypes()
-        entity = self.productionPage.entityViewer.currentEntity()
+        entities = self.productionPage.entityViewer.selectedEntities()
 
-        if entity:
+        if entities:
             self.dataSource.dataFilter.clear()
-            self.dataSource.dataFilter.search(self.dataSource.interface, job=entity.job, parent_uuid=entity.getUuid(), type__in=filteredTypes)
+            self.dataSource.dataFilter.search(self.dataSource.interface,
+                                              parent_uuid__in=[entity.getUuid() for entity in entities],
+                                              type__in=filteredTypes)
             self.dataSource.setNeedToRefresh(True)
             self.packageTree._resizeAllColumnsToContents()
         else:

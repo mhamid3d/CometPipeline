@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="pipeicon">
+    <file>ICON_ALEMBIC2_LRG.png</file>
+    <file>ICON_ALEMBIC_LRG.png</file>
     <file>ICON_ANALYTICS_LRG.png</file>
     <file>ICON_ANALYTICS_MED.png</file>
     <file>ICON_ANALYTICS_SML.png</file>
@@ -63,6 +65,11 @@
     <file>ICON_DOOROPEN_LRG.png</file>
     <file>ICON_DOOROPEN_MED.png</file>
     <file>ICON_DOOROPEN_SML.png</file>
+    <file>ICON_FILEBIF_LRG.png</file>
+    <file>ICON_FILEMA_LRG.png</file>
+    <file>ICON_FILEMB_LRG.png</file>
+    <file>ICON_FILEMEL_LRG.png</file>
+    <file>ICON_FILEPY_LRG.png</file>
     <file>ICON_FILE_LRG.png</file>
     <file>ICON_FILE_MED.png</file>
     <file>ICON_FILE_SML.png</file>
@@ -178,5 +185,6 @@
     <file>ICON_XRED_LRG.png</file>
     <file>ICON_XRED_MED.png</file>
     <file>ICON_XRED_SML.png</file>
+    <file>alembic.svg</file>
   </qresource>
 </RCC>

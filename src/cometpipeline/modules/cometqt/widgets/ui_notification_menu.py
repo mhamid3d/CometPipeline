@@ -21,33 +21,31 @@ class NotificationThread(QtCore.QThread):
                 'fullDocument.receiver_uuid': self.userObject.getUuid()
             }}
         ])
-        self._continue = True
 
     def quit(self):
         self.change_stream.close()
-        self._continue = False
         super(NotificationThread, self).quit()
         self.wait(5000)
 
     def exit(self, *args, **kwargs):
         self.change_stream.close()
-        self._continue = False
         super(NotificationThread, self).exit()
         self.wait(5000)
 
     def terminate(self):
         self.change_stream.close()
-        self._continue = False
         super(NotificationThread, self).terminate()
         self.wait(5000)
 
     def run(self):
-        while self._continue:
+        try:
             for change in self.change_stream:
                 uuid = change['fullDocument']['uuid']
                 dataObject = self.handler['notification'].get(uuid)
                 self.notificationReceived.emit(dataObject)
-
+        except:
+            # TODO: figure out why pymongo errors when quitting thread
+            pass
 
 class NotificationMenuAction(QtWidgets.QFrame):
     def __init__(self, dataObject=None, icon=None, exc=None):
