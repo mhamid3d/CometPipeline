@@ -111,6 +111,12 @@
     <file>ICON_LOCATION_SML.png</file>
     <file>ICON_MARI_LRG.png</file>
     <file>ICON_MAYA_LRG.png</file>
+    <file>ICON_MODEL_IMPORT_LRG.png</file>
+    <file>ICON_MODEL_IMPORT_MED.png</file>
+    <file>ICON_MODEL_IMPORT_SML.png</file>
+    <file>ICON_MODEL_PUBLISH_LRG.png</file>
+    <file>ICON_MODEL_PUBLISH_MED.png</file>
+    <file>ICON_MODEL_PUBLISH_SML.png</file>
     <file>ICON_MONITOR_LRG.png</file>
     <file>ICON_MONITOR_MED.png</file>
     <file>ICON_MONITOR_SML.png</file>
@@ -122,6 +128,7 @@
     <file>ICON_PLUS_LRG.png</file>
     <file>ICON_PLUS_MED.png</file>
     <file>ICON_PLUS_SML.png</file>
+    <file>ICON_PYCHARM_LRG.png</file>
     <file>ICON_RELOADGREY_LRG.png</file>
     <file>ICON_RELOADGREY_MED.png</file>
     <file>ICON_RELOADGREY_SML.png</file>
@@ -173,6 +180,7 @@
     <file>ICON_TRASH_LRG.png</file>
     <file>ICON_TRASH_MED.png</file>
     <file>ICON_TRASH_SML.png</file>
+    <file>ICON_USD_LRG.png</file>
     <file>ICON_USER_LRG.png</file>
     <file>ICON_USER_MED.png</file>
     <file>ICON_USER_SML.png</file>

@@ -4,7 +4,7 @@ from .top_header import TopHeaderView
 
 class TreeDelegate(QtWidgets.QStyledItemDelegate):
 
-    MARGIN = 10
+    MARGIN = 20
 
     def __init__(self, view):
         super(TreeDelegate, self).__init__()

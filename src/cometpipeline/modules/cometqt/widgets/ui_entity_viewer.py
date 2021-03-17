@@ -192,9 +192,18 @@ class EntityTree(QtWidgets.QTreeWidget):
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
-        self.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
         self.setSelectionModel(TreeSelectionModel(model=self.model()))
+        self.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
         self.itemSelectionChanged = self.selectionModel().selectionChanged
+
+    def setSelectionMode(self, selectionMode):
+        if selectionMode == QtWidgets.QTreeView.ExtendedSelection:
+            if not self.selectionModel().propagateSelection():
+                self.selectionModel().setPropagateSelection(True)
+        else:
+            if self.selectionModel().propagateSelection():
+                self.selectionModel().setPropagateSelection(False)
+        super(EntityTree, self).setSelectionMode(selectionMode)
 
     def contextMenu(self, pos):
         selectedItems = [x for x in self.selectedItems() if hasattr(x, "dataObject")]
@@ -398,7 +407,7 @@ class EntityViewer(QtWidgets.QWidget):
         self.entityTypeButtonGrp.addButton(self.productionButton, 1)
 
         self.searchBar.editingFinished.connect(self.doSearch)
-        self.refreshButton.clicked.connect(self.populate)
+        self.refreshButton.clicked.connect(lambda: self.populate(reload=True))
         self.productionButton.clicked.connect(lambda: self.setEntityType(self.TYPE_PRODUCTION))
         self.assetsButton.clicked.connect(lambda: self.setEntityType(self.TYPE_ASSETS))
         self.jobComboBox.currentIndexChanged.connect(lambda: self.setCurrentJob(
@@ -524,14 +533,15 @@ class EntityViewer(QtWidgets.QWidget):
     def isDialog(self):
         return self._isDialog
 
-    def populate(self):
+    def populate(self, reload=False):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         jobObject = self._currentJob
         handler = mongorm.getHandler()
         filter = mongorm.getFilter()
 
-        selection = self.selectedEntities()
+        if reload:
+            selection = self.selectedEntities()
 
         self.entityTree.clear()
 
@@ -543,7 +553,7 @@ class EntityViewer(QtWidgets.QWidget):
 
             jobRootItem = QtWidgets.QTreeWidgetItem(self.entityTree)
             jobRootItem.setText(0, jobEntityObject.get("label"))
-            jobRootItem.setIcon(0, QtGui.QIcon(iconutil.entityIcon(jobEntityObject)))
+            jobRootItem.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(jobEntityObject)))
             jobRootItem.dataObject = jobEntityObject
 
             self.recursive_populate(jobRootItem)
@@ -551,7 +561,8 @@ class EntityViewer(QtWidgets.QWidget):
         self.doSearch()
         self.entityTree.expandAll()
 
-        self.setSelectedEntities(selection)
+        if reload:
+            self.setSelectedEntities(selection)
 
         QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -570,7 +581,7 @@ class EntityViewer(QtWidgets.QWidget):
             for child in children:
                 item = QtWidgets.QTreeWidgetItem(rootTreeItem)
                 item.setText(0, child.get("label"))
-                item.setIcon(0, QtGui.QIcon(iconutil.entityIcon(child)))
+                item.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(child)))
                 item.dataObject = child
                 self.recursive_populate(item)
 
@@ -620,7 +631,7 @@ class EntityViewer(QtWidgets.QWidget):
 
 
 class EntityPickerDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, singleSelection=True, parent=None):
         super(EntityPickerDialog, self).__init__(parent=parent)
         self.setWindowTitle("Set Entity")
         self.entityViewer = EntityViewer()
@@ -632,6 +643,9 @@ class EntityPickerDialog(QtWidgets.QDialog):
 
         self.diagButtonBox = QtWidgets.QDialogButtonBox()
         self.diagButtonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+
+        if singleSelection:
+            self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
 
         self.mainLayout.addWidget(self.entityViewer)
         self.mainLayout.addWidget(self.diagButtonBox)

@@ -1,5 +1,5 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from pipeicon import icon_paths, util as piutil
+from pipeicon import icon_paths, util as iconutil
 from cometqt.widgets.ui_entity_viewer import EntityViewer
 import mongorm
 
@@ -77,7 +77,7 @@ class EntityComboBox(QtWidgets.QPushButton):
 
         if entityObject:
             text = entityObject.publishName()
-            icon = piutil.entityIcon(entityObject)
+            icon = iconutil.dataObjectToIcon(entityObject)
         else:
             text = self.defaultText
             icon = ""

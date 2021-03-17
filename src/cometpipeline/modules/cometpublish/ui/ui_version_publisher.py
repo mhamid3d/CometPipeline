@@ -107,6 +107,7 @@ class VersionPublisher(QtWidgets.QDialog):
             self._nameFieldData[nameField] = ""
         self.setup_ui()
         self._post_process = None
+        self.resize(500, 800)
 
     @property
     def packageType(self):
@@ -179,11 +180,13 @@ class VersionPublisher(QtWidgets.QDialog):
         self.contextGroupBox = QtWidgets.QGroupBox("Context")
         self.contextGroupLayout = cqtutil.FormVBoxLayout()
         self.contextGroupBox.setLayout(self.contextGroupLayout)
+        self.versionParamsGroupBox = QtWidgets.QGroupBox("Version Parameters")
+        self.versionParamsLayout = cqtutil.FormVBoxLayout()
+        self.versionParamsGroupBox.setLayout(self.versionParamsLayout)
 
         self.entityComboBox = EntityComboBox(parent=self)
         self.entityComboBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                                           QtWidgets.QSizePolicy.Minimum)
-
         self.packageTypeComboBox = QtWidgets.QComboBox()
         for packageTypeName, packageTypeData in package_util.getPackageTypesDict().items():
             packageTypeDesc = packageTypeData['desc']
@@ -213,15 +216,21 @@ class VersionPublisher(QtWidgets.QDialog):
         self.autoStatusComboBox.addItem(QtGui.QIcon(icon_paths.ICON_XRED_LRG), "Declined")
         self.autoStatusComboBox.setSizePolicy(self.entityComboBox.sizePolicy())
 
+        self.commentLineEdit = QtWidgets.QLineEdit()
+        self.commentLineEdit.setSizePolicy(self.entityComboBox.sizePolicy())
+
         self.contextGroupLayout.addRow("JOB AND ENTITY", self.entityComboBox)
         self.contextGroupLayout.addRow("PACKAGE TYPE", self.packageTypeComboBox)
         self.contextGroupLayout.addRow("EXISTING PACKAGE", self.existingPackageCombo)
         self.contextGroupLayout.addRow("NAME FIELDS", self.nameFieldsGroupBox)
         self.contextGroupLayout.addRow("VERSION", self.versionComboBox)
-        self.contextGroupLayout.addRow("AUTO STATUS", self.autoStatusComboBox)
+
+        self.versionParamsLayout.addRow("AUTO STATUS", self.autoStatusComboBox)
+        self.versionParamsLayout.addRow("COMMENT", self.commentLineEdit)
 
         self.mainLayout.addWidget(self.versionLabelGroupBox)
         self.mainLayout.addWidget(self.contextGroupBox)
+        self.mainLayout.addWidget(self.versionParamsGroupBox)
 
         bottomLayout = QtWidgets.QHBoxLayout()
         bottomLayout.setAlignment(QtCore.Qt.AlignRight)
@@ -382,6 +391,8 @@ class VersionPublisher(QtWidgets.QDialog):
 
         if missingRequiredFields:
             raise RuntimeError("Missing required fields: {}".format(", ".join(missingRequiredFields)))
+        if not self.commentLineEdit.text():
+            raise RuntimeError("Missing version comment")
 
         # Check if package exists, if not, create it
 
@@ -410,6 +421,7 @@ class VersionPublisher(QtWidgets.QDialog):
 
         # Create version
 
+        status = ['pending', 'approved', 'declined']
         versionObject = handler['version'].create(
             label=self.versionPublishName,
             created_by=mgutil.getCurrentUser().getUuid(),
@@ -417,12 +429,10 @@ class VersionPublisher(QtWidgets.QDialog):
             job=self.entityComboBox.getSelectedJob().get("label"),
             path=os.path.abspath(os.path.join(packageObject.path, self.versionPublishName)),
             version=self.versionComboBox.getSelectedVersion(),
-            comment="this is my test",
-            status="pending",
+            comment=self.commentLineEdit.text(),
+            status=status[self.autoStatusComboBox.currentIndex()],
             state="complete"
         )
-        status = ['pending', 'approved', 'declined']
-        versionObject.status = status[self.autoStatusComboBox.currentIndex()]
         versionObject.save()
         cometpublish.build_version_directory(versionObject)
 

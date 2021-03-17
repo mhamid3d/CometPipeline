@@ -115,6 +115,13 @@ class Entity(DataObject, mongoengine.Document):
         else:
             return self.label
 
+    def packages(self):
+        db = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(db["package"], job=self.job, parent_uuid=self.uuid)
+        packages = db["package"].all(filt)
+        return packages
+
 
 class Package(DataObject, mongoengine.Document):
     '''
@@ -229,6 +236,20 @@ class Version(DataObject, mongoengine.Document):
         siblings.remove_object(self)
         return siblings
 
+    def get_dependency_masters(self):
+        db = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(db['dependency'], job=self.job, source_version_uuid=self.uuid)
+        dependencies = db['dependency'].all(filt)
+        return dependencies
+
+    def get_dependency_slaves(self):
+        db = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(db['dependency'], job=self.job, link_version_uuid=self.uuid)
+        dependencies = db['dependency'].all(filt)
+        return dependencies
+
 
 class Content(DataObject, mongoengine.Document):
 
@@ -272,16 +293,29 @@ class Dependency(DataObject, mongoengine.Document):
     INTERFACE_STRING = "dependency"
 
     # Required fields
-    source_version_uuid = mongoengine.StringField(required=True, dispName="Source Version UUID") # Parent
-    link_version_uuid = mongoengine.StringField(required=True, dispName="Link Version UUID") # Child (depends on parent)
+    source_version_uuid = mongoengine.StringField(required=True, dispName="Source Version UUID")
+    link_version_uuid = mongoengine.StringField(required=True, dispName="Link Version UUID")
+
+    # SOURCE DEPENDS ON LINK
 
     def children(self):
         return None
 
     def siblings(self):
+        return None
+
+    def get_same_source(self):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(db['dependency'], job=self.job, source_version_uuid=self.source_version_uuid)
+        siblings = db['dependecy'].all(filt)
+        siblings.remove_object(self)
+        return siblings
+
+    def get_same_link(self):
+        db = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(db['dependency'], job=self.job, link_version_uuid=self.link_version_uuid)
         siblings = db['dependecy'].all(filt)
         siblings.remove_object(self)
         return siblings

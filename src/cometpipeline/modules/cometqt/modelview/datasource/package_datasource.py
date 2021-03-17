@@ -4,8 +4,7 @@ from cometqt.modelview.datasource.abstract_datasource import AbstractDataSource
 from cometqt.modelview import common as mvcommon
 from collections import OrderedDict, defaultdict
 from cometqt.widgets.ui_user_avatar import AvatarLabel
-from cometpipe.core import FORMAT_TO_ICON
-from pipeicon import icon_paths
+from pipeicon import icon_paths, util as iconutil
 import mongorm
 
 
@@ -16,6 +15,7 @@ class PackageDataSource(AbstractDataSource):
             # ('thumbnail', {'display': 'Thumbnail', 'icon': icon_paths.ICON_IMAGE_LRG}),
             ('modified', {'display': 'Modified', 'icon': icon_paths.ICON_CLOCK_LRG}),
             ('created', {'display': 'Created', 'icon': icon_paths.ICON_CLOCK_LRG}),
+            ('format', {'display': 'Format', 'icon': icon_paths.ICON_FILE_LRG}),
             ('comment', {'display': 'Comment', 'icon': icon_paths.ICON_COMMENT_LRG}),
             ('framerange', {'display': 'Frame Range', 'icon': icon_paths.ICON_FRAMERANGE_LRG}),
             ('created_by', {'display': 'Created By', 'icon': icon_paths.ICON_USER_LRG})
@@ -30,6 +30,16 @@ class PackageDataSource(AbstractDataSource):
             'modified': self.configure_modified,
             'created_by': self.configure_user
         }
+        self._propogateUpFields = [
+            'comment'
+        ]
+
+    def propogateDataUp(self, dataObject, field):
+        latestChild = dataObject.latest()
+        if latestChild:
+            return latestChild.get(field)
+        else:
+            return None
 
     def _createHeaderItem(self, columnNames):
         headerItem = ModelItem(len(self._columnNameMap.keys()))
@@ -66,7 +76,7 @@ class PackageDataSource(AbstractDataSource):
         }
 
         if dataObject.interfaceName() == "Package":
-            pixmap = QtGui.QPixmap(icon_paths.ICON_PACKAGE_LRG)
+            pixmap = QtGui.QPixmap(iconutil.dataObjectToIcon(dataObject))
             pixmap = pixmap.scaledToHeight(16, QtCore.Qt.SmoothTransformation)
             compPixmap = QtGui.QPixmap(pixmap.width() + 32, pixmap.height())
             compPixmap.fill(QtGui.QColor(0, 0, 0, 0))
@@ -93,7 +103,7 @@ class PackageDataSource(AbstractDataSource):
             data.append((QtCore.Qt.DisplayRole, str(dataObject.get("label"))))
 
         elif dataObject.interfaceName() == "Version":
-            pixmap = QtGui.QPixmap(icon_paths.ICON_VERSION_LRG)
+            pixmap = QtGui.QPixmap(iconutil.dataObjectToIcon(dataObject))
             pixmap = pixmap.scaledToHeight(16, QtCore.Qt.SmoothTransformation)
             compPixmap = QtGui.QPixmap(pixmap.width() + 32, pixmap.height())
             compPixmap.fill(QtGui.QColor(0, 0, 0, 0))
@@ -111,8 +121,7 @@ class PackageDataSource(AbstractDataSource):
             data.append((QtCore.Qt.DisplayRole, str(dataObject.get("label"))))
 
         elif dataObject.interfaceName() == "Content":
-            fileIcon = icon_paths.ICON_FILE_LRG if str(dataObject.get("format")) not in FORMAT_TO_ICON else FORMAT_TO_ICON[str(dataObject.get("format"))]
-            pixmap = QtGui.QPixmap(fileIcon)
+            pixmap = QtGui.QPixmap(iconutil.dataObjectToIcon(dataObject))
             pixmap = pixmap.scaledToHeight(16, QtCore.Qt.SmoothTransformation)
 
             data.append((QtCore.Qt.DecorationRole, pixmap))
@@ -147,15 +156,19 @@ class PackageDataSource(AbstractDataSource):
             if field in mvcommon.DB_FIELD_TYPE_MAP:
                 itemData[idx][mvcommon.ROLE_DATA_TYPE] = mvcommon.DB_FIELD_TYPE_MAP[field]
 
+            field_value = dataObject.get(field)
+            if field in self._propogateUpFields and dataObject.interfaceName() == "Package":
+                field_value = self.propogateDataUp(dataObject, field)
+
             if field in self.specialTypesMap:
                 for role, value in self.specialTypesMap[field](dataObject):
                     itemData[idx][role] = value
             elif field in mvcommon.DB_FIELD_TYPE_MAP and mvcommon.DB_FIELD_TYPE_MAP[field] in mvcommon.DB_FIELD_READABLE_MAP:
-                data = mvcommon.DB_FIELD_READABLE_MAP[mvcommon.DB_FIELD_TYPE_MAP[field]](dataObject.get(field))
+                data = mvcommon.DB_FIELD_READABLE_MAP[mvcommon.DB_FIELD_TYPE_MAP[field]](field_value)
                 for role, value in data:
                     itemData[idx][role] = value
             else:
-                itemData[idx][QtCore.Qt.DisplayRole] = str(dataObject.get(field)) if dataObject.get(field) else None
+                itemData[idx][QtCore.Qt.DisplayRole] = str(field_value) if field_value else None
 
         for col, data in list(itemData.items()):
             for role, value in list(data.items()):
@@ -169,10 +182,8 @@ class PackageDataSource(AbstractDataSource):
         }
 
         if dataObject.interfaceName() == "Package":
-            dataObject = dataObject.latest()
-        if dataObject:
-            state = dataObject.get("state")
-            if state in stateColorMap:
+            state = self.propogateDataUp(dataObject, "state")
+            if state and state in stateColorMap:
                 for col in itemData.keys():
                     itemData[col][QtCore.Qt.TextColorRole] = stateColorMap[state]
 

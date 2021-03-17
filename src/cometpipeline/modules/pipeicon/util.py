@@ -1,4 +1,5 @@
 from . import icon_paths
+from cometpipe.core import FORMAT_TO_ICON
 import os
 
 
@@ -20,3 +21,21 @@ def entityIcon(entityObject):
         return icon_paths.ICON_SHOT_LRG
     elif type == "job":
         return icon_paths.ICON_COMETPIPE_LRG
+
+
+def dataObjectToIcon(dataObject):
+    if dataObject.interfaceName() == "Package":
+        return icon_paths.ICON_PACKAGE_LRG
+    elif dataObject.interfaceName() == "Version":
+        return icon_paths.ICON_VERSION_LRG
+    elif dataObject.interfaceName() == "Content":
+        return icon_paths.ICON_FILE_LRG if str(dataObject.get("format")) not in FORMAT_TO_ICON else FORMAT_TO_ICON[
+            str(dataObject.get("format"))]
+    elif dataObject.interfaceName() == "Entity":
+        return entityIcon(dataObject)
+    elif dataObject.interfaceName() == "User":
+        return icon_paths.ICON_USER_LRG
+    elif dataObject.interfaceName() == "Job":
+        return icon_paths.ICON_COMETPIPE_LRG
+    else:
+        return ""

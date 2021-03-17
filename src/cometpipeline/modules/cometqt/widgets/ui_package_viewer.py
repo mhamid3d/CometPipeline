@@ -6,14 +6,25 @@ from cometpublish import package_util
 from cometqt.modelview.model import Model
 from cometqt.modelview.tree_view import TreeView
 from cometqt.modelview.datasource.package_datasource import PackageDataSource
+from cometqt.widgets.ui_delete_dialog import DeleteDialog
 import math
 import subprocess
 import os
 
 
 class AbstractViewerMenu(QtWidgets.QMenu):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, dataObjects=[]):
         super(AbstractViewerMenu, self).__init__(parent=parent)
+
+        self._dataObjects = dataObjects
+        self._formatToApp = {
+            'mb': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
+            'ma': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
+            'bif': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
+            'mel': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
+            'py': ['PyCharm', icon_paths.ICON_PYCHARM_LRG, ["pycharm"]],
+            'abc': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]]
+        }
 
         self.copyAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPY_LRG), "Copy")
         self.copyPathAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPY_LRG), "Copy Path")
@@ -30,9 +41,27 @@ class AbstractViewerMenu(QtWidgets.QMenu):
         self.declinedAction = self.setStatusMenu.addAction(QtGui.QIcon(icon_paths.ICON_XRED_LRG), "Declined")
         self.addSeparator()
         self.openInMenu = self.addMenu("Open In")
+        self.openInAppsMap = {}
         self.openInExplorerAction = self.openInMenu.addAction("Explorer")
         self.openInTerminalAction = self.openInMenu.addAction("Terminal")
         self.openInMenu.addSeparator()
+        self.deleteAction = self.addAction(QtGui.QIcon(icon_paths.ICON_TRASH_LRG), "Delete")
+        self.populateOpenInTypes()
+
+    def populateOpenInTypes(self):
+        for item, command in self.openInAppsMap:
+            self.openInMenu.removeAction(item)
+            item.deleteLater()
+            del item
+        self.openInAppsMap.clear()
+
+        if self._dataObjects and len(self._dataObjects) == 1:
+            dataObject = self._dataObjects[0]
+            if hasattr(dataObject, "format"):
+                title, icon, cmd = self._formatToApp[dataObject.get("format")]
+                item = self.openInMenu.addAction(QtGui.QIcon(icon), title)
+                cmd.append(dataObject.get("path"))
+                self.openInAppsMap[item] = cmd
 
 
 class PackageTypeNavigator(QtWidgets.QScrollArea):
@@ -260,7 +289,7 @@ class PackageTree(TreeView):
         if not selectedItems:
             return
 
-        self._menu = AbstractViewerMenu(parent=self)
+        self._menu = AbstractViewerMenu(parent=self, dataObjects=[x.dataObject for x in selectedItems])
         self.main_action = self._menu.exec_(self.mapToGlobal(pos))
 
         if not self.main_action:
@@ -324,6 +353,12 @@ class PackageTree(TreeView):
                     if os.path.isfile(path):
                         path = os.path.abspath(os.path.join(path, os.pardir))
                     subprocess.Popen(["gnome-terminal", "--working-directory={}".format(path)])
+        elif self.main_action in list(self._menu.openInAppsMap.keys()):
+            subprocess.Popen(self._menu.openInAppsMap[self.main_action])
+        elif self.main_action == self._menu.deleteAction:
+            deleteResult = DeleteDialog(parent=self, dataObjects=selectedItems)
+            deleteResult.exec_()
+            self.model().dataNeedsRefresh.emit()
 
 
 class PackageViewer(QtWidgets.QWidget):
