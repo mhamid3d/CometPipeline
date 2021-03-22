@@ -43,7 +43,7 @@ if __name__ == '__main__':
         app = QtWidgets.QApplication.instance()
         if not app:
             app = QtWidgets.QApplication(sys.argv)
-        font = QtGui.QFont("Ubuntu")
+        font = QtGui.QFont("Nimbus Sans")
         font.setStyleHint(QtGui.QFont.Monospace)
         app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
         app.setFont(font)

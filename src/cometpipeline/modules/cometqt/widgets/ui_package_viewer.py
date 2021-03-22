@@ -103,7 +103,7 @@ class PackageTypeNavigator(QtWidgets.QScrollArea):
         self.setup_ui()
 
         self.packageTypeButtonGroup.buttonClicked.connect(self.updateButtonsToggle)
-        self.updateButtonsToggle()
+        self.updateButtonsToggle(self.packageTypeButtonGroup.button(0))
 
     def setup_ui(self):
         for idx, packageType in enumerate(self.packageTypes):
@@ -348,13 +348,13 @@ class PackageTree(TreeView):
             filePaths = [x.dataObject.get("path") for x in selectedItems]
             for path in filePaths:
                 if self.main_action == self._menu.openInExplorerAction:
-                    subprocess.Popen(["nemo", path])
+                    subprocess.Popen(["nautilus", path])
                 elif self.main_action == self._menu.openInTerminalAction:
                     if os.path.isfile(path):
                         path = os.path.abspath(os.path.join(path, os.pardir))
                     subprocess.Popen(["gnome-terminal", "--working-directory={}".format(path)])
         elif self.main_action in list(self._menu.openInAppsMap.keys()):
-            subprocess.Popen(self._menu.openInAppsMap[self.main_action])
+            subprocess.Popen(self._menu.openInAppsMap[self.main_action], close_fds=True)
         elif self.main_action == self._menu.deleteAction:
             deleteResult = DeleteDialog(parent=self, dataObjects=selectedItems)
             deleteResult.exec_()
@@ -415,7 +415,8 @@ class PackageViewer(QtWidgets.QWidget):
         self.packageViewportLayout.addWidget(self.paginatorWidget)
 
         self.packageTypeNavigator.filteredTypesChanged.connect(self.populate_viewport)
-        self.refreshButton.clicked.connect(lambda: self.dataSource.setNeedToRefresh(True))
+        # self.refreshButton.clicked.connect(lambda: self.dataSource.setNeedToRefresh(True))
+        self.refreshButton.clicked.connect(self.populate_viewport)
 
     @property
     def productionPage(self):

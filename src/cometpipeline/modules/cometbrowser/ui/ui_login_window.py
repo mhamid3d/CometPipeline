@@ -175,6 +175,7 @@ class UiLoginWindow(QtWidgets.QWidget):
     def __init__(self, bootstrap=None):
         super(UiLoginWindow, self).__init__()
         self.setFixedSize(1100, 700)
+        self.setWindowIcon(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
         self.bootstrap = bootstrap
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignCenter)

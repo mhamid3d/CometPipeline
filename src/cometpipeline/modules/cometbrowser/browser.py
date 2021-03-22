@@ -169,5 +169,3 @@ class ProjectBrowserMain(BaseMainWindow):
         filteredPackageTypes = self.settings.value("packageViewer/filteredPackageTypes")
         if filteredPackageTypes:
             self.productionPage.packageViewer.packageTypeNavigator.setFilteredTypes(filteredPackageTypes.split(";"))
-        else:
-            self.productionPage.packageViewer.packageTypeNavigator.setFilteredTypes()

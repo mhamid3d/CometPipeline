@@ -4,12 +4,10 @@ from cometqt import util as cqtutil
 from cometpublish import package_util
 from pipeicon import icon_paths
 from collections import OrderedDict
-import mongorm
 from mongorm import util as mgutil
+import mongorm
 import cometpublish
-
 import os
-os.environ['SHOT'] = 'ab_seq'
 
 
 class VersionComboBox(QtWidgets.QComboBox):
@@ -217,6 +215,7 @@ class VersionPublisher(QtWidgets.QDialog):
         self.autoStatusComboBox.setSizePolicy(self.entityComboBox.sizePolicy())
 
         self.commentLineEdit = QtWidgets.QLineEdit()
+        self.commentLineEdit.setMinimumHeight(32)
         self.commentLineEdit.setSizePolicy(self.entityComboBox.sizePolicy())
 
         self.contextGroupLayout.addRow("JOB AND ENTITY", self.entityComboBox)
@@ -267,6 +266,17 @@ class VersionPublisher(QtWidgets.QDialog):
         self.versionComboBox.currentIndexChanged.connect(self.updateLabel)
 
         self.handlePackageType()
+
+    def setCurrentType(self, currentType):
+        packageTypeNames = [x[0] for x in package_util.getPackageTypesDict().items()]
+        try:
+            self.packageTypeComboBox.setCurrentIndex(packageTypeNames.index(currentType))
+            return True
+        except ValueError:
+            return False
+
+    def setFixedType(self, fixedType):
+        self.packageTypeComboBox.setDisabled(fixedType)
 
     def getValueByWidget(self, widget):
         if isinstance(widget, QtWidgets.QComboBox):
