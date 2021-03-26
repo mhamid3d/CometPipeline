@@ -7,6 +7,7 @@ from cometqt.modelview.model import Model
 from cometqt.modelview.tree_view import TreeView
 from cometqt.modelview.datasource.package_datasource import PackageDataSource
 from cometqt.widgets.ui_delete_dialog import DeleteDialog
+from sys import platform
 import math
 import subprocess
 import os
@@ -348,11 +349,22 @@ class PackageTree(TreeView):
             filePaths = [x.dataObject.get("path") for x in selectedItems]
             for path in filePaths:
                 if self.main_action == self._menu.openInExplorerAction:
-                    subprocess.Popen(["nautilus", path])
+                    if platform == "linux" or platform == "linux2":
+                        subprocess.Popen(["nautilus", path])
+                    elif platform == "platform" == "darwin":
+                        subprocess.Popen(["open", "-R", path])
+                    elif platform == "platform" == "win32":
+                        subprocess.Popen(r'explorer /select,"{}"'.format(path))
                 elif self.main_action == self._menu.openInTerminalAction:
                     if os.path.isfile(path):
                         path = os.path.abspath(os.path.join(path, os.pardir))
-                    subprocess.Popen(["gnome-terminal", "--working-directory={}".format(path)])
+
+                    if platform == "linux" or platform == "linux2":
+                        subprocess.Popen(["gnome-terminal", "--working-directory={}".format(path)])
+                    elif platform == "platform" == "darwin":
+                        subprocess.Popen(["open", "-a", "Terminal", "-n", path])
+                    elif platform == "platform" == "win32":
+                        subprocess.Popen(["start", "cmd", "/K", "cd", "{}".format(path)])
         elif self.main_action in list(self._menu.openInAppsMap.keys()):
             subprocess.Popen(self._menu.openInAppsMap[self.main_action], close_fds=True)
         elif self.main_action == self._menu.deleteAction:

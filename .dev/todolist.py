@@ -1,1 +1,1 @@
-#TODO: Pre-validation checks when starting a DCC app that makes sure your jobbed into a shot
+#TODO: Switch cshow.py and cshot.py to write to QSettings, this will make it OS agnostic.

@@ -18,7 +18,11 @@ ENTITY_TEMPLATE_STRUCTURE = {
         'nuke': {},
         'photoshop': {},
         'unreal': {},
-        'zbrush': {}
+        'zbrush': {},
+        'painter': {},
+        'designer': {},
+        'marvelous': {},
+        'mari': {}
     }
 }
 
