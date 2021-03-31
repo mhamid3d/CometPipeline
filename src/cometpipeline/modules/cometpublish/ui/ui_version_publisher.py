@@ -3,7 +3,7 @@ from cometqt.widgets.ui_entity_combobox import EntityComboBox
 from cometqt import util as cqtutil
 from cometpublish import package_util
 from pipeicon import icon_paths
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from mongorm import util as mgutil
 import mongorm
 import cometpublish
@@ -94,7 +94,7 @@ class PackageComboBox(QtWidgets.QComboBox):
 
 class VersionPublisher(QtWidgets.QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, validationDialog=None, postProcess=None):
         super(VersionPublisher, self).__init__(parent=parent)
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
@@ -104,8 +104,14 @@ class VersionPublisher(QtWidgets.QDialog):
         for nameField in package_util.getNameFieldsDict():
             self._nameFieldData[nameField] = ""
         self.setup_ui()
+        self._validation_dialog = None
         self._post_process = None
+        self.validationDialog = validationDialog
+        self.postProcess = postProcess
         self.resize(500, 800)
+
+        if not self.postProcess:
+            self.publishButton.setDisabled(True)
 
     @property
     def packageType(self):
@@ -159,13 +165,23 @@ class VersionPublisher(QtWidgets.QDialog):
         return "_".join([self.packagePublishName, version])
 
     @property
-    def post_process(self):
+    def postProcess(self):
         return self._post_process
 
-    @post_process.setter
-    def post_process(self, func):
+    @postProcess.setter
+    def postProcess(self, func):
         assert callable(func), "Post Process must be a callable function"
         self._post_process = func
+        self.publishButton.setEnabled(True)
+
+    @property
+    def validationDialog(self):
+        return self._validation_dialog
+
+    @validationDialog.setter
+    def validationDialog(self, diag):
+        assert issubclass(diag, ValidationDialog), "Validation Dialog must be instance of Validation Dialog Class"
+        self._validation_dialog = diag
 
     def setup_ui(self):
         self.versionLabelGroupBox = QtWidgets.QGroupBox("Version Name")
@@ -239,26 +255,26 @@ class VersionPublisher(QtWidgets.QDialog):
         self.mainLayout.addLayout(bottomLayout)
 
         closeButton = QtWidgets.QPushButton("CLOSE")
-        publishButton = QtWidgets.QPushButton("PUBLISH")
+        self.publishButton = QtWidgets.QPushButton("PUBLISH")
 
         closeButton.setCursor(QtCore.Qt.PointingHandCursor)
-        publishButton.setCursor(QtCore.Qt.PointingHandCursor)
+        self.publishButton.setCursor(QtCore.Qt.PointingHandCursor)
         closeButton.setIcon(QtGui.QIcon(icon_paths.ICON_XRED_LRG))
-        publishButton.setIcon(QtGui.QIcon(icon_paths.ICON_VERSION_LRG))
+        self.publishButton.setIcon(QtGui.QIcon(icon_paths.ICON_VERSION_LRG))
         closeButton.setFixedSize(84, 42)
-        publishButton.setFixedSize(84, 42)
+        self.publishButton.setFixedSize(84, 42)
 
-        publishButton.setStyleSheet("""
+        self.publishButton.setStyleSheet("""
             QPushButton{
                 color: #148CD2;
             }
         """)
 
         bottomLayout.addWidget(closeButton)
-        bottomLayout.addWidget(publishButton)
+        bottomLayout.addWidget(self.publishButton)
 
         closeButton.clicked.connect(self.close)
-        publishButton.clicked.connect(self.doPublish)
+        self.publishButton.clicked.connect(self.doPublish)
 
         self.entityComboBox.entityChanged.connect(self.handleEntity)
         self.packageTypeComboBox.currentIndexChanged.connect(self.handlePackageType)
@@ -392,6 +408,12 @@ class VersionPublisher(QtWidgets.QDialog):
         self.versionLabel.setText(self.versionPublishName)
 
     def doPublish(self):
+        validationDialog = self.validationDialog(parent=self)
+        validationDialog.exec_()
+
+        if not validationDialog.isValid():
+            return
+
         # UI form validation
         missingRequiredFields = []
         for nameField, nameFieldData in self.packageTypeNameFields.items():
@@ -451,8 +473,70 @@ class VersionPublisher(QtWidgets.QDialog):
             'versionObject': versionObject,
             'entityObject': self.entityComboBox.getSelectedEntity()
         }
-        if self.post_process(**kwargs):
+
+        if self.postProcess:
+            postProcess = self.postProcess(**kwargs)
+            if postProcess:
+                msgBox = QtWidgets.QMessageBox()
+                msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
+                msgBox.setWindowTitle("Publish Successful!")
+                msgBox.setText("{} successfully published!".format(versionObject.get("label")))
+                result = msgBox.exec_()
+                self.close()
+            else:
+                #TODO: reverse the publish, delete the files, and the db entry.
+                pass
+
+
+class ValidationDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(ValidationDialog, self).__init__(parent=parent)
+        self._isValid = False
+
+        self.validatorMap = {}
+
+        self.setupBaseUI()
+        self.validate()
+
+    def setupBaseUI(self):
+        self.setWindowTitle("Validation Check")
+        self.mainLayout = QtWidgets.QVBoxLayout(self)
+        self.setLayout(self.mainLayout)
+        self.mainGroupBox = QtWidgets.QGroupBox("Validation Checks")
+        self.buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
+        self.mainLayout.addWidget(self.mainGroupBox)
+        self.mainLayout.addWidget(self.buttonBox, alignment=QtCore.Qt.AlignRight)
+
+        self.groupLayout = QtWidgets.QVBoxLayout()
+        self.mainGroupBox.setLayout(self.groupLayout)
+        self.validationTree = QtWidgets.QTreeWidget()
+        self.validationTree.setHeaderHidden(True)
+        self.groupLayout.addWidget(self.validationTree)
+
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Close).clicked.connect(self.reject)
+
+        self.setupValidators()
+
+    def setupValidators(self):
+        raise NotImplementedError
+
+    def validate(self):
+        for validationTask, payload in self.validatorMap.items():
+            result = payload['validator']()
+            self.validatorMap[validationTask]['result'] = result
+            payload['treeItem'].setIcon(0, QtGui.QIcon(
+                icon_paths.ICON_CHECKGREEN_LRG if result else icon_paths.ICON_XRED_LRG))
+
+        if self.isValid():
             self.close()
+
+    def isValid(self):
+        if any([not x['result'] for x in list(self.validatorMap.values())]):
+            self._isValid = False
+        else:
+            self._isValid = True
+
+        return self._isValid
 
 
 if __name__ == '__main__':
