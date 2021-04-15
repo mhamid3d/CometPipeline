@@ -493,7 +493,7 @@ class ValidationDialog(QtWidgets.QDialog):
         super(ValidationDialog, self).__init__(parent=parent)
         self._isValid = False
 
-        self.validatorMap = {}
+        self._validatorMap = {}
 
         self.setupBaseUI()
         self.validate()
@@ -507,36 +507,147 @@ class ValidationDialog(QtWidgets.QDialog):
         self.mainLayout.addWidget(self.mainGroupBox)
         self.mainLayout.addWidget(self.buttonBox, alignment=QtCore.Qt.AlignRight)
 
-        self.groupLayout = QtWidgets.QVBoxLayout()
+        self.groupLayout = QtWidgets.QHBoxLayout()
+        self.leftLayout = QtWidgets.QVBoxLayout()
         self.mainGroupBox.setLayout(self.groupLayout)
+        self.groupLayout.addLayout(self.leftLayout)
+
+        self.textLayout = QtWidgets.QVBoxLayout()
+        self.textLayout.setAlignment(QtCore.Qt.AlignTop)
+        descriptionHeader = QtWidgets.QLabel("Description")
+        self.descriptionTextBox = QtWidgets.QTextEdit()
+        detailsHeader = QtWidgets.QLabel("Details")
+        self.detailsTextBox = QtWidgets.QTextEdit()
+        self.textLayout.addWidget(descriptionHeader)
+        self.textLayout.addWidget(self.descriptionTextBox)
+        self.textLayout.addWidget(detailsHeader)
+        self.textLayout.addWidget(self.detailsTextBox)
+
+        for label in [descriptionHeader, detailsHeader]:
+            label.setStyleSheet("font: bold; font-size: 14px;")
+
+        self.groupLayout.addLayout(self.textLayout)
+
         self.validationTree = QtWidgets.QTreeWidget()
         self.validationTree.setHeaderHidden(True)
-        self.groupLayout.addWidget(self.validationTree)
+        self.leftLayout.addWidget(self.validationTree)
+        self.bottomButtonsLayout = QtWidgets.QHBoxLayout()
+        self.fixSelectedButton = QtWidgets.QPushButton("Fix Selected")
+        self.refreshButton = QtWidgets.QPushButton("Refresh")
+        self.fixSelectedButton.setDisabled(True)
+        self.fixSelectedButton.setIcon(QtGui.QIcon(icon_paths.ICON_CRAFT_LRG))
+        self.refreshButton.setIcon(QtGui.QIcon(icon_paths.ICON_RELOAD_LRG))
+        self.bottomButtonsLayout.setAlignment(QtCore.Qt.AlignRight)
+        self.bottomButtonsLayout.addWidget(self.fixSelectedButton)
+        self.bottomButtonsLayout.addWidget(self.refreshButton)
+        self.leftLayout.addLayout(self.bottomButtonsLayout)
 
         self.buttonBox.button(QtWidgets.QDialogButtonBox.Close).clicked.connect(self.reject)
+        self.validationTree.itemSelectionChanged.connect(self.validationItemChanged)
+        self.refreshButton.clicked.connect(self.validate)
+        self.fixSelectedButton.clicked.connect(self.fixSelected)
 
         self.setupValidators()
+
+    def fixSelected(self):
+        selection = self.validationTree.currentItem()
+        fixer = self._validatorMap[selection.text(0)]['fixer']
+        fixer()
+
+        self.validate()
+
+    def validationItemChanged(self):
+
+        selection = self.validationTree.currentItem()
+
+        if not selection:
+            self.fixSelectedButton.setDisabled(True)
+            return
+
+        validationData = self._validatorMap[selection.text(0)]
+
+        if validationData['fixer']:
+            self.fixSelectedButton.setEnabled(True)
+
+        self.updateTextFields()
+
+    def updateTextFields(self):
+        selection = self.validationTree.currentItem()
+
+        if not selection:
+            self.descriptionTextBox.setText("")
+            self.detailsTextBox.setText("")
+            return
+
+        validationData = self._validatorMap[selection.text(0)]
+
+        self.descriptionTextBox.setText(validationData['description'])
+        self.detailsTextBox.setText(validationData['errorMsg'])
 
     def setupValidators(self):
         raise NotImplementedError
 
     def validate(self):
-        for validationTask, payload in self.validatorMap.items():
-            result = payload['validator']()
-            self.validatorMap[validationTask]['result'] = result
+        for validationTask, payload in self._validatorMap.items():
+            result, errorMsg = payload['validator']()
+
+            self.editValidator(name=validationTask, field='result', value=result)
+            self.editValidator(name=validationTask, field='errorMsg', value=errorMsg)
             payload['treeItem'].setIcon(0, QtGui.QIcon(
                 icon_paths.ICON_CHECKGREEN_LRG if result else icon_paths.ICON_XRED_LRG))
+
+        self.updateTextFields()
 
         if self.isValid():
             self.close()
 
     def isValid(self):
-        if any([not x['result'] for x in list(self.validatorMap.values())]):
+        if any([not x['result'] for x in list(self._validatorMap.values())]):
             self._isValid = False
         else:
             self._isValid = True
 
         return self._isValid
+
+    def installValidator(self, name=None, result=False, errorMsg=None, description=None, validator=None, fixer=None):
+        assert(name, "A name for the validator is required")
+        assert(description, "A description for the validtor is required")
+        assert(validator, "A validator function for the validator is required")
+
+        treeItem = QtWidgets.QTreeWidgetItem(self.validationTree)
+        treeItem.setText(0, name)
+
+        self._validatorMap[name] = {
+            'result': result,
+            'treeItem': treeItem,
+            'errorMsg': errorMsg,
+            'description': description,
+            'validator': validator,
+            'fixer': fixer
+        }
+
+    def removeValidator(self, name):
+        self._validatorMap.pop(name)
+
+    def editValidator(self, name, field, value):
+
+        fields = ['result', 'treeItem', 'errorMsg', 'description', 'validator', 'fixer']
+
+        assert(name, "Please provide a valid name for the validator")
+        assert(name in self._validatorMap, "Validator {} does not exist. Please install it first.".format(name))
+        assert(field in fields, "Invalid field for validtor: {}".format(name))
+
+        if field == "result":
+            assert(isinstance(value, bool))
+        elif field == "treeItem":
+            assert(isinstance(value, QtWidgets.QTreeWidgetItem))
+        elif field == "validator" or field == "fixer":
+            assert(callable(value))
+
+        data = self._validatorMap[name]
+        data[field] = value
+        self._validatorMap[name] = data
+
 
 
 if __name__ == '__main__':
@@ -545,6 +656,6 @@ if __name__ == '__main__':
     import mongorm
     app = QtWidgets.QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
-    win = VersionPublisher()
+    win = ValidationDialog()
     win.show()
     sys.exit(app.exec_())
