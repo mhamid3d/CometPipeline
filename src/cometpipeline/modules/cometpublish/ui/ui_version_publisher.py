@@ -518,6 +518,8 @@ class ValidationDialog(QtWidgets.QDialog):
         self.descriptionTextBox = QtWidgets.QTextEdit()
         detailsHeader = QtWidgets.QLabel("Details")
         self.detailsTextBox = QtWidgets.QTextEdit()
+        self.detailsTextBox.setReadOnly(True)
+        self.descriptionTextBox.setReadOnly(True)
         self.textLayout.addWidget(descriptionHeader)
         self.textLayout.addWidget(self.descriptionTextBox)
         self.textLayout.addWidget(detailsHeader)
@@ -566,7 +568,7 @@ class ValidationDialog(QtWidgets.QDialog):
 
         validationData = self._validatorMap[selection.text(0)]
 
-        if validationData['fixer']:
+        if validationData['fixer'] and not validationData['result']:
             self.fixSelectedButton.setEnabled(True)
 
         self.updateTextFields()
@@ -635,7 +637,7 @@ class ValidationDialog(QtWidgets.QDialog):
 
         assert(name, "Please provide a valid name for the validator")
         assert(name in self._validatorMap, "Validator {} does not exist. Please install it first.".format(name))
-        assert(field in fields, "Invalid field for validtor: {}".format(name))
+        assert(field in fields, "Invalid field for validator: {}".format(name))
 
         if field == "result":
             assert(isinstance(value, bool))
@@ -647,7 +649,6 @@ class ValidationDialog(QtWidgets.QDialog):
         data = self._validatorMap[name]
         data[field] = value
         self._validatorMap[name] = data
-
 
 
 if __name__ == '__main__':
