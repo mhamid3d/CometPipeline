@@ -561,9 +561,8 @@ class ValidationDialog(QtWidgets.QDialog):
     def validationItemChanged(self):
 
         selection = self.validationTree.currentItem()
-
+        self.fixSelectedButton.setDisabled(True)
         if not selection:
-            self.fixSelectedButton.setDisabled(True)
             return
 
         validationData = self._validatorMap[selection.text(0)]
@@ -599,9 +598,6 @@ class ValidationDialog(QtWidgets.QDialog):
                 icon_paths.ICON_CHECKGREEN_LRG if result else icon_paths.ICON_XRED_LRG))
 
         self.updateTextFields()
-
-        if self.isValid():
-            self.close()
 
     def isValid(self):
         if any([not x['result'] for x in list(self._validatorMap.values())]):

@@ -1,6 +1,9 @@
+import shutil
+
 from qtpy import QtWidgets, QtCore, QtGui
 import tempfile
 import sys
+import os
 
 
 class ScreenGrabber(QtWidgets.QDialog):
@@ -133,7 +136,7 @@ class ScreenGrabber(QtWidgets.QDialog):
 
 
 class ScreenShotTool(QtWidgets.QDialog):
-    def __init__(self, parent=None, format='png'):
+    def __init__(self, parent=None, format='png', versionObject=None):
         super(ScreenShotTool, self).__init__(parent)
         self.setWindowTitle("Capture Asset Screenshot")
         self.mainLayout = QtWidgets.QVBoxLayout()
@@ -141,13 +144,14 @@ class ScreenShotTool(QtWidgets.QDialog):
         self.buttonsLayout = QtWidgets.QHBoxLayout()
         self.mainLayout.addLayout(self.buttonsLayout)
         self.captureButton = QtWidgets.QPushButton("Capture")
-        self.useLastVersionButton = QtWidgets.QPushButton("Use Last Version")
+        self.useLastVersionButton = QtWidgets.QPushButton("Use Last Available")
         self.useLastVersionButton.setDisabled(True)
         self.captureButton.setFixedSize(120, 64)
         self.useLastVersionButton.setFixedSize(120, 64)
         self.buttonsLayout.addWidget(self.captureButton)
         self.buttonsLayout.addWidget(self.useLastVersionButton)
         self.captureButton.clicked.connect(self.capture)
+        self.useLastVersionButton.clicked.connect(self.useLastVersion)
         self.squareAspectRatio = QtWidgets.QCheckBox("Square Thumbnail")
         self.squareAspectRatio.setChecked(True)
         self.mainLayout.addWidget(self.squareAspectRatio)
@@ -155,10 +159,30 @@ class ScreenShotTool(QtWidgets.QDialog):
         self.pix = None
         self._outputPath = None
         self._format = format
+        self._lastAvailable = None
+        self._versionObject = versionObject
+
+        if self._versionObject:
+            package = self._versionObject.parent()
+            allVersions = package.children()
+            for version in allVersions:
+                if version.get("thumbnail") and os.path.exists(version.get("thumbnail")):
+                    self.useLastVersionButton.setEnabled(True)
+                    self._lastAvailable = version.get("thumbnail")
 
     @property
     def outputPath(self):
         return self._outputPath
+
+    def useLastVersion(self):
+        if not self._lastAvailable:
+            self.useLastVersionButton.setDisabled(True)
+            return
+        self._outputPath = tempfile.NamedTemporaryFile(
+                suffix=".{}".format(self._format), prefix="cmt_gaze_", delete=False
+            ).name
+        shutil.copy(self._lastAvailable, self._outputPath)
+        self.close()
 
     def capture(self):
         self.captureButton.setDisabled(True)
