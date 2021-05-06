@@ -36,5 +36,6 @@ FORMAT_TO_ICON = {
     'bif': icon_paths.ICON_FILEBIF_LRG,
     'mel': icon_paths.ICON_FILEMEL_LRG,
     'py': icon_paths.ICON_FILEPY_LRG,
-    'abc': icon_paths.ICON_ALEMBIC2_LRG
+    'abc': icon_paths.ICON_ALEMBIC2_LRG,
+    'usd': icon_paths.ICON_USD_LRG
 }

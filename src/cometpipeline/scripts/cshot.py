@@ -49,10 +49,10 @@ if not targetShot in [x.get('label') for x in all_shots()]:
 	sys.exit()
 
 
-confDir = os.path.abspath('{}/.config/Comet Pipeline'.format(os.getenv('HOME')))
+confDir = os.path.abspath('{}/.config/CometPipeline'.format(os.getenv('HOME')))
 
 if not os.path.exists(confDir):
-	os.mkdir('~/.config/Comet Pipeline')
+	os.mkdir(confDir)
 
 showFile = os.path.abspath(os.path.join(confDir, '.SHOW'))
 shotFile = os.path.abspath(os.path.join(confDir, '.SHOT'))

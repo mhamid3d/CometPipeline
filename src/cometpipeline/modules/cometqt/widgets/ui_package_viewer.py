@@ -24,7 +24,8 @@ class AbstractViewerMenu(QtWidgets.QMenu):
             'bif': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
             'mel': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
             'py': ['PyCharm', icon_paths.ICON_PYCHARM_LRG, ["pycharm"]],
-            'abc': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]]
+            'abc': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]],
+            'usd': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]]
         }
 
         self.copyAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPY_LRG), "Copy")

@@ -11,8 +11,8 @@ import mongorm
 class PackageDataSource(AbstractDataSource):
     def __init__(self):
         self._columnNameMap = OrderedDict([
+            #('thumbnail', {'display': 'Thumbnail', 'icon': icon_paths.ICON_IMAGE_LRG}),
             ('label', {'display': 'Package Name', 'icon': icon_paths.ICON_PACKAGE_LRG}),
-            # ('thumbnail', {'display': 'Thumbnail', 'icon': icon_paths.ICON_IMAGE_LRG}),
             ('modified', {'display': 'Modified', 'icon': icon_paths.ICON_CLOCK_LRG}),
             ('created', {'display': 'Created', 'icon': icon_paths.ICON_CLOCK_LRG}),
             ('format', {'display': 'Format', 'icon': icon_paths.ICON_FILE_LRG}),
@@ -29,6 +29,7 @@ class PackageDataSource(AbstractDataSource):
             'created': self.configure_created,
             'modified': self.configure_modified,
             'created_by': self.configure_user
+            #'thumbnail': self.configure_thumbnail
         }
         self._propogateUpFields = [
             'comment'
@@ -48,6 +49,15 @@ class PackageDataSource(AbstractDataSource):
             headerItem.setData(QtGui.QPixmap(columnData[1]['icon']), i, QtCore.Qt.DecorationRole)
             headerItem.setData(columnData[0], i, self.ROLE_COLUMN_FIELD)
         return headerItem
+
+    # def configure_thumbnail(self, dataObject):
+    #     data = []
+    #     thumbnailPath = self.propogateDataUp(dataObject, 'thumbnail')
+    #     if not thumbnailPath:
+    #         return []
+    #     data.append((QtCore.Qt.DecorationRole, QtGui.QPixmap(thumbnailPath).scaledToHeight(64, QtCore.Qt.SmoothTransformation)))
+    #
+    #     return data
 
     def configure_user(self, dataObject):
         data = []
@@ -174,7 +184,8 @@ class PackageDataSource(AbstractDataSource):
             for role, value in list(data.items()):
                 if not value:
                     itemData[col][role] = ""
-                itemData[col][QtCore.Qt.ToolTipRole] = itemData[col][QtCore.Qt.DisplayRole]
+                if QtCore.Qt.DisplayRole in itemData[col]:
+                    itemData[col][QtCore.Qt.ToolTipRole] = itemData[col][QtCore.Qt.DisplayRole]
 
         stateColorMap = {
             'working': QtGui.QColor("orange"),

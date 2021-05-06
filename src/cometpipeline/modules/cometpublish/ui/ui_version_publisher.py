@@ -480,7 +480,15 @@ class VersionPublisher(QtWidgets.QDialog):
                 msgBox = QtWidgets.QMessageBox()
                 msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
                 msgBox.setWindowTitle("Publish Successful!")
-                msgBox.setText("{} successfully published!".format(versionObject.get("label")))
+                successMessage = "{} successfully published!".format(versionObject.get("label"))
+                msgBox.setText(successMessage)
+
+                notificationObject = handler['notification'].create(
+                    receiver_uuid=versionObject.get("created_by"),
+                    description=successMessage
+                )
+                notificationObject.save()
+
                 result = msgBox.exec_()
                 self.close()
             else:

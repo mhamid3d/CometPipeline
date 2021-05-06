@@ -47,6 +47,7 @@ class NotificationThread(QtCore.QThread):
             # TODO: figure out why pymongo errors when quitting thread
             pass
 
+
 class NotificationMenuAction(QtWidgets.QFrame):
     def __init__(self, dataObject=None, icon=None, exc=None):
         super(NotificationMenuAction, self).__init__()
@@ -334,6 +335,7 @@ class NotificationMenu(QtWidgets.QMenu):
     def populate_notifications(self):
         self.filter.search(self.interface, receiver_uuid=self.userObject.getUuid())
         self.allNotifications = self.interface.all(self.filter)
+        self.allNotifications.sort(sort_field="created", reverse=True)
 
         for notification in self.allNotifications:
             item = NotificationMenuAction(dataObject=notification)
@@ -356,7 +358,7 @@ class NotificationButton(QtWidgets.QPushButton):
         self.userObject = userObject
         self.setFixedSize(32, 32)
         self.setIcon(QtGui.QIcon(icon_paths.ICON_BELL_LRG))
-        self.setIconSize(QtCore.QSize(24, 24))
+        self.setIconSize(QtCore.QSize(22, 22))
         self.setStyleSheet("""
             QPushButton,
             QPushButton:pressed

@@ -10,30 +10,10 @@ import mongorm
 import os
 
 
-class MenuBar(QtWidgets.QMenuBar):
-    def __init__(self):
-        super(MenuBar, self).__init__()
-        self.setup_menu()
-        self.setStyleSheet("""
-            QMenuBar{
-                font-size: 13px;
-                border: 0px;
-                background: #2e2e2e;
-            }
-        """)
-
-    def setup_menu(self):
-        self.project_menu = self.addMenu("Project")
-        self.addMenu(self.project_menu)
-
-        self.create_new_action = self.project_menu.addAction("Create New Project")
-        self.manage_project_action = self.project_menu.addAction("Manage Project")
-
-        self.edit_menu = self.addMenu("Edit")
-        self.addMenu(self.edit_menu)
-
-        self.view_menu = self.addMenu("View")
-        self.addMenu(self.view_menu)
+class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
+    def __init__(self, parent=None):
+        super(SystemTrayIcon, self).__init__(parent)
+        self.setIcon(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
 
 
 class ProjectBrowserMain(BaseMainWindow):
@@ -55,6 +35,8 @@ class ProjectBrowserMain(BaseMainWindow):
         self.filter = mongorm.getFilter()
         self.setPageFromCurrentButton()
         self.bootstrap = bootstrap
+        self.tray = SystemTrayIcon(self)
+        self.tray.show()
         self.loadSettings()
 
     def setCurrentJob(self, jobObject):

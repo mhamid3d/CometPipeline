@@ -28,8 +28,8 @@ def v_line():
     return frame
 
 
-def get_settings(appName="Comet Browser"):
-    return QtCore.QSettings("Comet Pipeline", appName)
+def get_settings(appName="CometBrowser"):
+    return QtCore.QSettings("CometPipeline", appName)
 
 
 def get_top_window(fromObject, topClass):
