@@ -459,7 +459,7 @@ class VersionPublisher(QtWidgets.QDialog):
             created_by=mgutil.getCurrentUser().getUuid(),
             parent_uuid=packageObject.getUuid(),
             job=self.entityComboBox.getSelectedJob().get("label"),
-            path=os.path.abspath(os.path.join(packageObject.path, self.versionPublishName)),
+            path=os.path.abspath(os.path.join(packageObject.abs_path(), self.versionPublishName)),
             version=self.versionComboBox.getSelectedVersion(),
             comment=self.commentLineEdit.text(),
             status=status[self.autoStatusComboBox.currentIndex()],

@@ -1,10 +1,20 @@
-import os
 from urllib import parse
+import os
 import mongorm
 
-uri = "{comet:/dlr/bre330/model_prop_walkman_varA_lod_hi?v=approved}"
-uri = "{comet:/833e050c-458e-48a9-bfd9-87eac175ec65?v=approved}"
-uri = "{comet:dlr/model_${SHOT}_varA_lod_hi?v=34}"
+
+class Resolver(object):
+
+    _instance = False
+
+    def __init__(self):
+        self.cache = {}
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(Resolver, cls).__new__(cls, *args, **kwargs)
+
+        return cls._instance
 
 
 def clean_uri(uri):
@@ -14,6 +24,25 @@ def clean_uri(uri):
         uri = uri.replace("comet:/", "comet:")
 
     return uri
+
+
+def uri_to_fields(uri):
+    uri = clean_uri(uri)
+
+    parsed = parse.urlparse(uri)
+    query = parsed.query
+
+    query_tokens = query.split('&')
+    fields = {}
+
+    for field in query_tokens:
+        key, value = field.split('=')
+        # TODO: should we check if its a float as well?
+        if value.isnumeric():
+            value = int(value)
+        fields[key] = value
+
+    return fields
 
 
 def uri_to_object(uri):
@@ -100,4 +129,5 @@ def uri_to_object(uri):
     return versionObject
 
 
-uri_to_object(uri)
+def uri_to_filepath(uri):
+    pass

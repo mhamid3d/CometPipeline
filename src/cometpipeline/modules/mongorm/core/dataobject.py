@@ -126,3 +126,10 @@ class DataObject(AbstractDataObject):
 
     def siblings(self):
         raise NotImplementedError
+
+    def abs_path(self):
+        from mongorm.util import get_abs_job_path
+        return get_abs_job_path(self.rel_path())
+
+    def rel_path(self):
+        return self.path

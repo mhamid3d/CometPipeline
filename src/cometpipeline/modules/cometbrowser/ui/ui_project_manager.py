@@ -15,8 +15,6 @@ LOGGER = logging.getLogger("Comet.ProjectManager")
 logging.basicConfig()
 LOGGER.setLevel(logging.INFO)
 
-# TODO: remove all packages, versions, contents, dependencies when removing asset or shot
-
 
 def remove_confirm_dialog(dataObject):
     msgBox = QtWidgets.QMessageBox()
@@ -75,6 +73,7 @@ class AssetManagerPage(QtWidgets.QWidget):
         self.entityViewer.topLabel.hide()
         self.entityViewer.assetsButton.hide()
         self.entityViewer.productionButton.hide()
+        self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
 
         self.mainLayout.addLayout(self.editorLayout)
         self.editorLayout.addLayout(self.settingsLayout)
@@ -133,13 +132,9 @@ class AssetManagerPage(QtWidgets.QWidget):
 
         entityObject = handler['entity'].create(
             label=assetName,
-            path=cometpublish.util.assetTargetPath(assetSelection.dataObject, assetName),
-            job=self._currentJob.get("label"),
+            job=self._currentJob.label,
             type='asset',
-            production=production,
-            parent_uuid=assetSelection.dataObject.getUuid(),
             created_by=mgutil.getCurrentUser().getUuid(),
-            jobpath="{}/{}".format(assetSelection.dataObject.get("jobpath"), assetName)
         )
         entityObject.save()
         cometpublish.build_entity_directory(entityObject)
@@ -206,6 +201,7 @@ class ProductionManagerPage(QtWidgets.QWidget):
         self.entityViewer.topLabel.hide()
         self.entityViewer.assetsButton.hide()
         self.entityViewer.productionButton.hide()
+        self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
 
         self.mainLayout.addLayout(self.editorLayout)
         self.mainLayout.addLayout(self.treeLayout)
@@ -345,18 +341,19 @@ class ProductionManagerPage(QtWidgets.QWidget):
         sequenceObject = handler['entity'].one(filt)
         filt.clear()
 
-        # If the sequence already exists, just create the shots
+        filt.search(handler['entity'], type='util', label='root', job=self._currentJob.job)
+        rootEntityObject = handler['entity'].one(filt)
+        filt.clear()
+
+        # If the sequence does not already exist, create it
         if not sequenceObject:
             seqLabel = "{}_seq".format(seqName)
             sequenceObject = handler['entity'].create(
                 label=seqLabel,
-                path=cometpublish.util.sequenceShotTargetPath(self._currentJob, seqLabel),
                 job=self._currentJob.job,
                 type='sequence',
-                production=production,
-                parent_uuid=jobEntityObject.getUuid(),
                 created_by=mgutil.getCurrentUser().getUuid(),
-                jobpath="/{}".format(seqLabel)
+                parent_uuid=rootEntityObject.getUuid()
             )
             sequenceObject.save()
             cometpublish.build_entity_directory(sequenceObject)
@@ -374,13 +371,10 @@ class ProductionManagerPage(QtWidgets.QWidget):
                 if not shotObject:
                     shotObject = handler['entity'].create(
                         label=shotName,
-                        path=cometpublish.util.sequenceShotTargetPath(self._currentJob, shotName),
                         job=self._currentJob.job,
                         type='shot',
-                        production=sequenceObject.production,
                         parent_uuid=sequenceObject.getUuid(),
                         created_by=mgutil.getCurrentUser().getUuid(),
-                        jobpath="{}/{}".format(sequenceObject.get("jobpath"), shotName)
                     )
                     shotObject.save()
                     cometpublish.build_entity_directory(shotObject)
@@ -444,14 +438,11 @@ class ProductionManagerPage(QtWidgets.QWidget):
 
         shotObject = handler['entity'].create(
             label=shotName,
-            path=cometpublish.util.sequenceShotTargetPath(self._currentJob, shotName),
             job=self._currentJob.job,
             type='shot',
-            production=production,
             parent_uuid=selectedItem.dataObject.getUuid(),
             created_by=mgutil.getCurrentUser().getUuid(),
             framerange=frameRange,
-            jobpath="{}/{}".format(selectedItem.dataObject.get("jobpath"), shotName)
         )
         shotObject.save()
         cometpublish.build_entity_directory(shotObject)
@@ -491,7 +482,6 @@ class ProductionManagerPage(QtWidgets.QWidget):
             # Recursive Entities
             allEntities = entitySelection.dataObject.recursive_children()
             allEntities.append_object(entitySelection.dataObject)
-            allEntities.sort(sort_field='jobpath')
 
             allPackages = mongorm.createContainer(handler['package'])
             allVersions = mongorm.createContainer(handler['version'])
@@ -584,8 +574,8 @@ class DangerZonePage(QtWidgets.QWidget):
             all_objects.append(self._currentJob)
 
         for obj in all_objects:
-            if not obj._name == "Dependency":
-                prune_paths.append(obj.get("path"))
+            if not obj.path:
+                prune_paths.append(obj.abs_path())
             LOGGER.info("Removing database entry: {}".format(obj))
             obj.delete()
 

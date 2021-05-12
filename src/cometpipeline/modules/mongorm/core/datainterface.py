@@ -1,6 +1,9 @@
+import os.path
+
 from mongorm import interfaces
 from mongorm.core.datacontainer import DataContainer
 from mongoengine.errors import MultipleObjectsReturned
+import cometpublish
 import datetime
 import re
 
@@ -68,6 +71,19 @@ class DataInterface(object):
         obj._generate_id()
         obj.created = datetime.datetime.now()
         obj.modified = obj.created
+        if not obj.path:
+            if self._db_name == "job":
+                obj.path = os.path.join("/", obj.label)
+            elif self._db_name == "entity":
+                obj.path = os.path.join("/", obj.job, obj.label)
+            elif self._db_name == "package":
+                obj.path = cometpublish.util.packageTargetPath(obj.parent(), obj.type, obj.label)
+            elif self._db_name == "version" or self._db_name == "content":
+                obj.path = os.path.join(obj.parent().rel_path(), obj.label)
+            elif self._db_name == "content":
+                # TODO: what's going to happen if we have a "#" in there for file sequences?
+                obj.path = os.path.join(obj.parent().rel_path(), "{}.{}".format(obj.label, obj.format))
+
         return obj
 
     def cacheSizeLimit(self):
@@ -80,7 +96,10 @@ class DataInterface(object):
 
     def count(self, dataFilter):
         """Get count of all objects of this DataInterface type"""
-        return len(self.all())
+        import mongorm
+        flt = mongorm.getFilter()
+        flt.search(self)
+        return len(self.all(flt))
 
     def get(self, uuid):
         """Get Data object that matches uuid value of this DataInterface type"""

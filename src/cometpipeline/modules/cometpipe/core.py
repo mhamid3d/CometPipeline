@@ -1,13 +1,16 @@
 from pipeicon import icon_paths
+from cometqt import util as pqtutil
+import os
+
 
 DEFAULT_ROOT_ENTITIES = [
     'char',
     'crowd',
-    'environ',
+    'env',
     'fx',
     'prop',
-    'vehicle',
-    'utility'
+    'vehcl',
+    'util'
 ]
 
 PACKAGE_TYPES = {

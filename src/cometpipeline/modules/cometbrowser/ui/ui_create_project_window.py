@@ -1,5 +1,4 @@
 from qtpy import QtWidgets, QtGui, QtCore
-from cometpipe.core import DEFAULT_ROOT_ENTITIES
 from cometqt import util as cqtutil
 from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 from pipeicon import icon_paths
@@ -7,6 +6,7 @@ from mongorm import util as mgutil
 import cometpublish
 import mongorm
 import datetime
+import shutil
 import os
 
 
@@ -70,11 +70,12 @@ class InitialForm(QtWidgets.QFrame):
 
         # Full Title
         self.projectNameLine = ValidationLineEdit("Back To The Future")
+        self.projectNameLine.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp("[A-Za-z 0-9]{0,100}"), self))
 
         # Alias
-        self.projectAliasLine = ValidationLineEdit("DELOREAN")
-        self.projectAliasLine.textEdited.connect(self.alias_to_upper)
-        exp = QtCore.QRegExp("[a-z-A-Z\\.\\-0-9]{0,8}")
+        self.projectAliasLine = ValidationLineEdit("dlr")
+        self.projectAliasLine.textEdited.connect(self.alias_to_lower)
+        exp = QtCore.QRegExp("[A-Za-z0-9]{0,3}")
         self.aliasValidator = QtGui.QRegExpValidator(exp, self)
         self.projectAliasLine.setValidator(self.aliasValidator)
 
@@ -103,6 +104,7 @@ class InitialForm(QtWidgets.QFrame):
             QSpinBox,
             QDoubleSpinBox{
                 border-radius: 0px;
+                padding: 7px;
                 background: background;
             }
         """
@@ -112,6 +114,33 @@ class InitialForm(QtWidgets.QFrame):
         self.xResSpin.setFixedHeight(42)
         self.yResSpin.setFixedHeight(42)
         self.aspectSpin.setFixedHeight(42)
+
+        # Full Title
+        self.projectDescription = ValidationLineEdit("Marty and Dr. Emmet Brown embark an time traveling journey.")
+
+        # Create Default Assets
+        # self.createDefaultAssetsCheck = QtWidgets.QCheckBox()
+        # self.createDefaultAssetsCheck.setChecked(True)
+        # self.createDefaultAssetsCheck.setCursor(QtCore.Qt.PointingHandCursor)
+        # self.createDefaultAssetsCheck.setStyleSheet("""
+        #     QCheckBox::indicator{
+        #         border: 1px solid #6e6e6e;
+        #         border-radius: 0px;
+        #         padding: 2px;
+        #     }
+        #     QCheckBox::indicator:hover{
+        #         border: 1px solid white;
+        #     }
+        #     QCheckBox::indicator:checked{
+        #         background: #148CD2;
+        #         border: 1px solid #148CD2;
+        #         image: url(%s);
+        #     }
+        #     QCheckBox::indicator:unchecked{
+        #         background: none;
+        #         image: none;
+        #     }
+        # """ % icon_paths.ICON_TICK_SML)
 
         # Color Space
         self.colorSpaceFrame = QtWidgets.QFrame()
@@ -150,74 +179,11 @@ class InitialForm(QtWidgets.QFrame):
         self.colorSpaceFileDialog = QtWidgets.QFileDialog()
         self.colorSpaceBrowse.clicked.connect(self.colorspace_browse)
 
-        # Location
-        self.directoryFrame = QtWidgets.QFrame()
-        self.directoryLayout = QtWidgets.QHBoxLayout()
-        self.directoryLayout.setContentsMargins(0, 0, 0, 0)
-        self.directoryFrame.setLayout(self.directoryLayout)
-        self.directoryLine = ValidationLineEdit("")
-        self.directoryLine.setReadOnly(True)
-        self.directoryLine.setText(str(os.path.abspath("/jobs")).replace("\\", "/"))
-        self.directoryBrowse = QtWidgets.QPushButton("Browse")
-        self.directoryBrowse.setFixedHeight(42)
-        self.directoryLayout.addWidget(self.directoryLine)
-        self.directoryLayout.addWidget(self.directoryBrowse)
-        self.directoryBrowse.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.directoryBrowse.setCursor(QtCore.Qt.PointingHandCursor)
-        self.directoryFrame.setStyleSheet("""
-            QFrame{
-                border: none;
-                background: none;
-            }
-        """)
-        self.directoryFileDialog = QtWidgets.QFileDialog()
-        self.directoryBrowse.clicked.connect(self.directory_browse)
-
-        # Create Default Assets
-        self.createDefaultAssetsCheck = QtWidgets.QCheckBox()
-        self.createDefaultAssetsCheck.setChecked(True)
-        self.createDefaultAssetsCheck.setCursor(QtCore.Qt.PointingHandCursor)
-        self.createDefaultAssetsCheck.setStyleSheet("""
-            QCheckBox::indicator{
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                padding: 2px;
-            }
-            QCheckBox::indicator:hover{
-                border: 1px solid white;
-            }
-            QCheckBox::indicator:checked{
-                background: #148CD2;
-                border: 1px solid #148CD2;
-                image: url(%s);
-            }
-            QCheckBox::indicator:unchecked{
-                background: none;
-                image: none;
-            }
-        """ % icon_paths.ICON_TICK_SML)
-
         self.formLayout.addRow("FULL TITLE", self.projectNameLine)
-        self.formLayout.addRow("ALIAS", self.projectAliasLine, tip="Project code that will be used for all of production. Keep it simple and short.")
-        self.formLayout.addRow("DIRECTORY", self.directoryFrame)
-        self.formLayout.addRow("COLOR SPACE CONFIG", self.colorSpaceFrame, tip="Config will be cloned to project directory.")
-        self.formLayout.addRow("RESOLUTION", self.resolutionLayout)
-        self.formLayout.addRow("CREATE DEFAULT ASSETS", self.createDefaultAssetsCheck)
+        self.formLayout.addRow("ALIAS", self.projectAliasLine, tip="Project code that will be used for all of production. Must be 3 characters long.")
+        self.formLayout.addRow("RESOLUTION", self.resolutionLayout, tip="(X), (Y), (ASPECT RATIO)")
+        self.formLayout.addRow("DESCRIPTION", self.projectDescription)
+        self.formLayout.addRow("OCIO CONFIG", self.colorSpaceFrame, tip="The config will be copied and published to the job")
 
         self.closeButton = QtWidgets.QPushButton("CLOSE")
         self.nextButton = QtWidgets.QPushButton("NEXT")
@@ -270,20 +236,17 @@ class InitialForm(QtWidgets.QFrame):
 
         self.error_widget = AnimatedPopupMessage(parent=self.parent(), width=self.parent().width(), type=AnimatedPopupMessage.ERROR)
 
-    def directory_browse(self):
-        text = self.directoryFileDialog.getExistingDirectory(parent=self, dir=str(self.directoryLine.text()), caption='Choose Color Config')
-        if text:
-            self.directoryLine.setText(str(text))
-
     def colorspace_browse(self):
-        text = self.colorSpaceFileDialog.getOpenFileName(parent=self, caption='Choose Color Config', filter="OCIO Config Files (*.ocio)")
-        if text and text[0]:
+        text = self.colorSpaceFileDialog.getOpenFileName(parent=self,
+                                                             caption='Choose Colorspace Config File',
+                                                             options=QtWidgets.QFileDialog.DontUseNativeDialog,
+                                                             filter="OCIO Config (*.ocio)")
+        if text:
             self.colorSpaceLine.setText(str(text[0]))
-            self.colorSpaceFileDialog.setDirectory(os.path.abspath(os.path.join(str(text[0]), os.pardir)))
 
-    def alias_to_upper(self, *args):
+    def alias_to_lower(self, *args):
         text = args[0]
-        self.projectAliasLine.setText(text.upper())
+        self.projectAliasLine.setText(text.lower())
 
     @property
     def isValid(self):
@@ -303,15 +266,14 @@ class InitialForm(QtWidgets.QFrame):
         self.isValid = False
         fullTitle = self.projectNameLine.text()
         alias = self.projectAliasLine.text()
-        directory = self.directoryLine.text()
-        colorConfig = self.colorSpaceLine.text()
         resolution = [self.xResSpin.value(), self.yResSpin.value(), self.aspectSpin.value()]
-        createDefaultAssets = self.createDefaultAssetsCheck.isChecked()
+        description = self.projectDescription.text()
 
         handler = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(handler['job'], label=alias)
         jobObject = handler['job'].one(filt)
+        ocioConfig = self.colorSpaceLine.text()
 
         if not fullTitle or len(fullTitle) < 2:
             self.error_widget.setMessage("Full Title of project is required")
@@ -325,27 +287,34 @@ class InitialForm(QtWidgets.QFrame):
             self.error_widget.setMessage("Alias of project is required")
             self.error_widget.do_anim()
             return
-        elif not os.path.exists(directory):
-            self.error_widget.setMessage("Invalid Project Directory. Make sure the folder exists")
-            self.error_widget.do_anim()
-            return
-        elif not os.path.exists(colorConfig):
-            self.error_widget.setMessage("Invalid Color Config file")
-            self.error_widget.do_anim()
-            return
         elif not resolution:
             self.error_widget.setMessage("Invalid Resolution")
             self.error_widget.do_anim()
             return
+        elif True:
+            if not ocioConfig or not os.path.exists(ocioConfig):
+                self.error_widget.setMessage("Path for OCIO Config doesn't exit")
+                self.error_widget.do_anim()
+                return
+
+            ocioDir = os.path.dirname(ocioConfig)
+            bakedDir = os.path.join(ocioDir, "baked")
+            lutsDir = os.path.join(ocioDir, "luts")
+            pythonDir = os.path.join(ocioDir, "python")
+
+            for dir in [bakedDir, lutsDir, pythonDir]:
+                if not os.path.exists(dir):
+                    self.error_widget.setMessage("'{}' folder missing from OCIO config directory".format(os.path.basename(dir)))
+                    self.error_widget.do_anim()
+                    return
 
         self.isValid = True
         self.validationData = {
             'jobFullTitle': fullTitle,
             'jobAlias': alias,
-            'jobDirectory': directory,
-            'jobColorConfig': colorConfig,
             'jobResolution': resolution,
-            'createDefaultAssets': createDefaultAssets
+            'jobDescription': description,
+            'jobOcioConfig': {'baked': bakedDir, 'luts': lutsDir, 'python': pythonDir, 'config': ocioConfig}
         }
         self.parent().setCurrentIndex(self.parent().currentIndex() + 1)
 
@@ -437,11 +406,11 @@ class ReviewFinishForm(QtWidgets.QFrame):
         self.topLayout.addWidget(self.productionIcon)
         self.topLayout.addWidget(self.productionLabel)
 
-        self.formLayout.addRow("DIRECTORY", QtWidgets.QLabel(initial['jobDirectory']))
+        self.formLayout.addRow("DIRECTORY", QtWidgets.QLabel(os.path.join(mgutil.get_comet_job_root(), initial['jobAlias'])))
         self.formLayout.addRow("RESOLUTION", QtWidgets.QLabel("{} x {} x {}".format(
             initial['jobResolution'][0], initial['jobResolution'][1], initial['jobResolution'][2]
         )))
-        self.formLayout.addRow("COLOR CONFIG", QtWidgets.QLabel(initial['jobColorConfig']))
+        self.formLayout.addRow("DESCRIPTION", QtWidgets.QLabel(initial['jobDescription']))
 
 
 class CreateProjectWindow(QtWidgets.QDialog):
@@ -528,11 +497,11 @@ class CreateProjectWindow(QtWidgets.QDialog):
         # Create Job Object
         jobObject = handler['job'].create(
             label=initialForm['jobAlias'],
-            path=os.path.abspath(os.path.join(initialForm['jobDirectory'], initialForm['jobAlias'])),
             job=initialForm['jobAlias'],
             created_by=currentUser.uuid,
             fullname=initialForm['jobFullTitle'],
             resolution=initialForm['jobResolution'],
+            description=initialForm['jobDescription'],
             admins=[currentUser.uuid],
             allowed_users=[currentUser.uuid]
         )
@@ -540,34 +509,55 @@ class CreateProjectWindow(QtWidgets.QDialog):
         cometpublish.build_job_directory(jobObject)
 
         # Create Job Entity
-        jobEntityObject = handler['entity'].create(
-            label=jobObject.label,
-            path=cometpublish.util.sequenceShotTargetPath(jobObject, jobObject.label),
+        rootEntityObject = handler['entity'].create(
+            label="root",
             job=jobObject.job,
-            type='job',
-            production=True,
+            type='util',
             parent_uuid=None,
             created_by=currentUser.uuid,
-            jobpath="/"
         )
-        jobEntityObject.save()
-        cometpublish.build_entity_directory(jobEntityObject)
+        rootEntityObject.save()
+        cometpublish.build_entity_directory(rootEntityObject)
 
-        if initialForm['createDefaultAssets']:
-            default_asset_list = sorted(DEFAULT_ROOT_ENTITIES)
-            for default_asset in default_asset_list:
-                assetObject = handler['entity'].create(
-                    label=default_asset,
-                    path=cometpublish.util.assetTargetPath(jobEntityObject, default_asset),
-                    job=jobObject.job,
-                    type='asset',
-                    production=True,
-                    parent_uuid=jobEntityObject.uuid,
-                    created_by=currentUser.uuid,
-                    jobpath="/{}".format(default_asset)
-                )
-                assetObject.save()
-                cometpublish.build_entity_directory(assetObject)
+        # Publish OCIO Config
+        ocioBaked = initialForm['jobOcioConfig']['baked']
+        ocioLuts = initialForm['jobOcioConfig']['luts']
+        ocioPython = initialForm['jobOcioConfig']['python']
+        ocioConfig = initialForm['jobOcioConfig']['config']
+
+        ocioPackageObject = handler['package'].create(
+            label='ocio_root',
+            type="ocio",
+            parent_uuid=rootEntityObject.getUuid(),
+            job=jobObject.job,
+            created_by=mgutil.getCurrentUser().getUuid()
+        )
+        ocioPackageObject.save()
+        cometpublish.build_package_directory(ocioPackageObject)
+
+        ocioVersion001Object = handler['version'].create(
+            label='ocio_root_v1',
+            version=1,
+            status='approved',
+            comment='Automatically generated publish from job create.',
+            parent_uuid=ocioPackageObject.getUuid(),
+            job=jobObject.job,
+            created_by=mgutil.getCurrentUser().getUuid()
+        )
+        ocioVersion001Object.save()
+        cometpublish.build_version_directory(ocioVersion001Object)
+
+        ocioConfigContentObject = handler['content'].create(
+            label='config',
+            format='ocio',
+            parent_uuid=ocioVersion001Object.getUuid(),
+            job=jobObject.job
+        )
+        ocioConfigContentObject.save()
+        shutil.copyfile(ocioConfig, ocioConfigContentObject.abs_path())
+        shutil.copytree(ocioBaked, os.path.join(ocioVersion001Object.abs_path(), "baked"))
+        shutil.copytree(ocioLuts, os.path.join(ocioVersion001Object.abs_path(), "luts"))
+        shutil.copytree(ocioPython, os.path.join(ocioVersion001Object.abs_path(), "python"))
 
         self.setCursor(QtCore.Qt.ArrowCursor)
 
@@ -636,7 +626,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     font = QtGui.QFont("Roboto")
     font.setStyleHint(QtGui.QFont.Monospace)
-    app.setFont(font)
+    # app.setFont(font)
     p = QtWidgets.QMainWindow()
     win = CreateProjectWindow(parent=p)
     win.move(1300, 400)

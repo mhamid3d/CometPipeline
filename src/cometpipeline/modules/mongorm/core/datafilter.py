@@ -59,6 +59,10 @@ class DataFilter(object):
         self._filterStrings = {}
 
     def search(self, *args, **kwargs):
+
+        if len(args) == 0:
+            raise RuntimeError("First argument must be a DataInterface")
+
         datainterface = args[0]
 
         assert isinstance(datainterface, DataInterface), "First argument must be a DataInterface"

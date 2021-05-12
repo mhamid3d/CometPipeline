@@ -19,7 +19,6 @@ class Job(DataObject, mongoengine.Document):
 
     # Optional fields
     description = mongoengine.StringField(dispName="Description")
-    tags = mongoengine.ListField(dispName="Tags")
 
     def children(self):
         db = mongorm.getHandler()
@@ -57,6 +56,13 @@ class Job(DataObject, mongoengine.Document):
         assets = db["entitiy"].all(filt)
         return assets
 
+    def utils(self):
+        db = mongorm.getHandler()
+        filt = mongorm.getFilter()
+        filt.search(db["entity"], job=self.label, type="util")
+        assets = db["entitiy"].all(filt)
+        return assets
+
 
 class Entity(DataObject, mongoengine.Document):
 
@@ -65,12 +71,10 @@ class Entity(DataObject, mongoengine.Document):
     INTERFACE_STRING = "entity"
 
     # Required fields
-    type = mongoengine.StringField(required=True, dispName="Type")  # eg: 'sequence', 'shot', 'asset', 'job'
-    production = mongoengine.BooleanField(required=True, dispName="Active")  # Set false for testing / rnd stems
-    parent_uuid = mongoengine.StringField(dispName="Parent UUID")
-    jobpath = mongoengine.StringField(dispName="Job Path", required=True)
+    type = mongoengine.StringField(required=True, dispName="Type")  # eg: 'sequence', 'shot', 'asset', 'util'
 
     # Optional fields
+    parent_uuid = mongoengine.StringField(dispName="Parent UUID", default=None)
     framerange = mongoengine.ListField(dispName="Frame Range")
     thumbnail = mongoengine.StringField(dispName="Thumbnail", icon=icon_paths.ICON_IMAGE_SML)
 
@@ -108,12 +112,6 @@ class Entity(DataObject, mongoengine.Document):
         siblings = db['entity'].all(filt)
         siblings.remove_object(self)
         return siblings
-
-    def publishName(self):
-        if self.type == "asset":
-            return self.jobpath[1:].replace("/", "_")
-        else:
-            return self.label
 
     def packages(self):
         db = mongorm.getHandler()
@@ -154,11 +152,9 @@ class Package(DataObject, mongoengine.Document):
 
     # Required fields
     parent_uuid = mongoengine.StringField(required=True, dispName="Package UUID", visible=False)
-    labelmap = mongoengine.DictField(required=True, dispName="Label Map")
     type = mongoengine.StringField(required=True, dispName="Type")
 
     # Optional fields
-    comment = mongoengine.StringField(dispName="Comment", icon=icon_paths.ICON_COMMENT_SML)
     thumbnail = mongoengine.StringField(dispName="Thumbnail", icon=icon_paths.ICON_IMAGE_SML)
     tags = mongoengine.ListField(dispName="Tags")
 
@@ -174,7 +170,7 @@ class Package(DataObject, mongoengine.Document):
         db = mongorm.getHandler()
         filt = mongorm.getFilter()
         filt.search(db['entity'], job=self.job, uuid=self.parent_uuid)
-        entity = db['entitiy'].one(filt)
+        entity = db['entity'].one(filt)
         return entity
 
     def latest(self):
@@ -208,7 +204,7 @@ class Version(DataObject, mongoengine.Document):
     parent_uuid = mongoengine.StringField(required=True, dispName="Package UUID", visible=False)
     state = mongoengine.StringField(required=True, dispName="State", visible=False,
                                     choices=['complete', 'working', 'failed'],
-                                    default='working')
+                                    default='complete')
 
     # Optional fields
     framerange = mongoengine.ListField(dispName="Frame Range")
@@ -249,6 +245,9 @@ class Version(DataObject, mongoengine.Document):
         filt.search(db['dependency'], job=self.job, link_version_uuid=self.uuid)
         dependencies = db['dependency'].all(filt)
         return dependencies
+
+    def default_content(self):
+        return self.children()[0]
 
 
 class Content(DataObject, mongoengine.Document):
@@ -296,6 +295,8 @@ class Dependency(DataObject, mongoengine.Document):
     source_version_uuid = mongoengine.StringField(required=True, dispName="Source Version UUID")
     link_version_uuid = mongoengine.StringField(required=True, dispName="Link Version UUID")
 
+    path = mongoengine.StringField(required=False, default=None)
+
     # SOURCE DEPENDS ON LINK
 
     def children(self):
@@ -335,7 +336,6 @@ class User(AbstractDataObject, mongoengine.Document):
     password = mongoengine.StringField(required=True)
     username = mongoengine.StringField(required=True)
     avatar = mongoengine.ImageField(required=True, size=(128, 128, True))
-    jobs = mongoengine.ListField(required=True, default=['LIBRARY'])
 
     def __repr__(self):
         reprstring = object.__repr__(self)

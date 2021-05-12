@@ -109,6 +109,9 @@
     <file>ICON_LAUNCHER_LRG.png</file>
     <file>ICON_LAUNCHER_MED.png</file>
     <file>ICON_LAUNCHER_SML.png</file>
+    <file>ICON_LINK_LRG.png</file>
+    <file>ICON_LINK_MED.png</file>
+    <file>ICON_LINK_SML.png</file>
     <file>ICON_LOCATION_LRG.png</file>
     <file>ICON_LOCATION_MED.png</file>
     <file>ICON_LOCATION_SML.png</file>
@@ -180,10 +183,16 @@
     <file>ICON_SYNC_LRG.png</file>
     <file>ICON_SYNC_MED.png</file>
     <file>ICON_SYNC_SML.png</file>
+    <file>ICON_TAGS_LRG.png</file>
+    <file>ICON_TAGS_MED.png</file>
+    <file>ICON_TAGS_SML.png</file>
     <file>ICON_TICK_SML.png</file>
     <file>ICON_TRASH_LRG.png</file>
     <file>ICON_TRASH_MED.png</file>
     <file>ICON_TRASH_SML.png</file>
+    <file>ICON_URI_LRG.png</file>
+    <file>ICON_URI_MED.png</file>
+    <file>ICON_URI_SML.png</file>
     <file>ICON_USD_LRG.png</file>
     <file>ICON_USER_LRG.png</file>
     <file>ICON_USER_MED.png</file>

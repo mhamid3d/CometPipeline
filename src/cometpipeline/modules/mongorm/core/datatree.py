@@ -1,6 +1,7 @@
 from qtpy import QtCore
 
-#TODO: to finish this and use it instead of what I'm doing in the twig datasource
+# TODO: to finish this and use it instead of what I'm doing in the package datasource
+
 
 class DataTree(object):
 

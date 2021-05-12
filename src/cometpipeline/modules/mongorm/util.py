@@ -1,3 +1,4 @@
+import os
 from uuid import getnode
 import platform
 
@@ -28,3 +29,11 @@ def getCurrentUser():
             return user_object
 
     raise KeyError("Could not find a valid user")
+
+
+def get_comet_job_root():
+    return os.path.expandvars(os.getenv("COMET_JOB_ROOT"))
+
+
+def get_abs_job_path(relative_path):
+    return os.path.abspath(os.path.join(get_comet_job_root(), relative_path.strip("/")))
