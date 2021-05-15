@@ -193,7 +193,7 @@ class EntityTree(QtWidgets.QTreeWidget):
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
         self.setSelectionModel(TreeSelectionModel(model=self.model()))
-        self.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
+        self.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
         self.itemSelectionChanged = self.selectionModel().selectionChanged
 
     def setSelectionMode(self, selectionMode):
@@ -351,9 +351,6 @@ class EntitySettings(QtWidgets.QDialog):
 
 class EntityViewer(QtWidgets.QWidget):
     SEARCH_HEIGHT = 32
-    TYPE_ASSETS = "assets"
-    TYPE_PRODUCTION = "production"
-    TYPE_DEFAULT = TYPE_PRODUCTION
 
     def __init__(self, parent=None):
         super(EntityViewer, self).__init__(parent=parent)
@@ -394,22 +391,11 @@ class EntityViewer(QtWidgets.QWidget):
 
         self.refreshButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_RELOAD_LRG)
         self.filterButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_FILTER_LRG)
-        self.assetsButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_ASSET_LRG)
-        self.productionButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_SEQUENCE_LRG)
-        self.entityTypeButtonGrp = QtWidgets.QButtonGroup()
         self.searchBar = UiSearchBar(height=self.SEARCH_HEIGHT)
         self.entityTree = EntityTree(parent=self)
 
-        self.assetsButton.setCheckable(True)
-        self.productionButton.setCheckable(True)
-        self.assetsButton.setChecked(True)
-        self.entityTypeButtonGrp.addButton(self.assetsButton, 0)
-        self.entityTypeButtonGrp.addButton(self.productionButton, 1)
-
         self.searchBar.editingFinished.connect(self.doSearch)
         self.refreshButton.clicked.connect(lambda: self.populate(reload=True))
-        self.productionButton.clicked.connect(lambda: self.setEntityType(self.TYPE_PRODUCTION))
-        self.assetsButton.clicked.connect(lambda: self.setEntityType(self.TYPE_ASSETS))
         self.jobComboBox.currentIndexChanged.connect(lambda: self.setCurrentJob(
             self.jobComboBox.currentDataObject()
         ))
@@ -417,8 +403,6 @@ class EntityViewer(QtWidgets.QWidget):
 
         self.mainLayout.addLayout(self.topLabelLayout)
         self.topLabelLayout.addWidget(self.topLabel)
-        self.topLabelLayout.addWidget(self.assetsButton)
-        self.topLabelLayout.addWidget(self.productionButton)
         self.mainLayout.addLayout(self.topSearchLayout)
         self.topSearchLayout.addWidget(self.searchBar)
         self.topSearchLayout.addWidget(self.refreshButton)
@@ -428,24 +412,6 @@ class EntityViewer(QtWidgets.QWidget):
 
         self._currentJob = None
         self.setIsDialog(False)
-        self._entityType = None
-        self.setEntityType(self.TYPE_PRODUCTION)
-        self.setFromEnvironment()
-
-    @property
-    def entityType(self):
-        return self._entityType
-
-    def setEntityType(self, entityType):
-        if entityType:
-            assert entityType in [self.TYPE_ASSETS, self.TYPE_PRODUCTION], "Invalid entity type: {}".format(entityType)
-
-        self._entityType = entityType
-        if self._entityType == self.TYPE_ASSETS:
-            self.assetsButton.setChecked(True)
-        elif self._entityType == self.TYPE_PRODUCTION:
-            self.productionButton.setChecked(True)
-        self.populate()
 
     def getAllItems(self, dataItemsOnly=False):
         objects = []
@@ -472,37 +438,6 @@ class EntityViewer(QtWidgets.QWidget):
         if not entities:
             self.entityTree.setCurrentItem(None)
             return
-
-        currentType = self.entityType
-
-        validAssetTypes = [
-            ['asset', 'job'],
-            ['asset']
-        ]
-        validProductionTypes = [
-            ['shot', 'sequence', 'job'],
-            ['shot'],
-            ['shot', 'sequence'],
-            ['sequence'],
-            ['shot', 'job'],
-            ['sequence', 'job']
-        ]
-        validAssetTypes = [sorted(x) for x in validAssetTypes]
-        validProductionTypes = [sorted(x) for x in validProductionTypes]
-
-        entityCombination = list(set([x.get("type") for x in entities]))
-        entityCombination.sort()
-
-        if entityCombination == ['job']:
-            pass
-        elif entityCombination in validAssetTypes:
-            if not self.entityType == self.TYPE_ASSETS:
-                self.setEntityType(self.TYPE_ASSETS)
-        elif entityCombination in validProductionTypes:
-            if not self.entityType == self.TYPE_PRODUCTION:
-                self.setEntityType(self.TYPE_PRODUCTION)
-        else:
-            raise RuntimeError("Entities must share the same type (Production or Asset). Given: {}".format(entityCombination))
 
         selection = QtCore.QItemSelection()
         for item in self.entityTree.getAllItems():
@@ -547,16 +482,27 @@ class EntityViewer(QtWidgets.QWidget):
 
         if jobObject:
 
-            filter.search(handler['entity'], job=jobObject.job, type='job', label=jobObject.job)
-            jobEntityObject = handler['entity'].one(filter)
+            filter.search(handler['entity'], job=jobObject.job, label="root")
+            rootEntityObject = handler['entity'].one(filter)
             filter.clear()
 
             jobRootItem = QtWidgets.QTreeWidgetItem(self.entityTree)
-            jobRootItem.setText(0, jobEntityObject.get("label"))
-            jobRootItem.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(jobEntityObject)))
-            jobRootItem.dataObject = jobEntityObject
+            jobRootItem.setText(0, rootEntityObject.get("label"))
+            jobRootItem.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(rootEntityObject)))
+            jobRootItem.dataObject = rootEntityObject
 
-            self.recursive_populate(jobRootItem)
+            # self.recursive_populate(jobRootItem)
+
+            filter.search(handler['entity'], job=jobObject.job)
+            remainingEntities = handler['entity'].all(filter)
+            remainingEntities.remove_object(rootEntityObject)
+            filter.clear()
+
+            for entity in remainingEntities:
+                item = QtWidgets.QTreeWidgetItem(self.entityTree)
+                item.setText(0, entity.get("label"))
+                item.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(entity)))
+                item.dataObject = entity
 
         self.doSearch()
         self.entityTree.expandAll()
@@ -605,7 +551,6 @@ class EntityViewer(QtWidgets.QWidget):
                 parent.setHidden(False)
 
     def setFromEnvironment(self):
-        import os
         show = os.getenv("SHOW")
         shot = os.getenv("SHOT")
 
@@ -665,6 +610,7 @@ if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
     win = EntityViewer()
+    win.setFromEnvironment()
     win.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
     win.show()
     sys.exit(app.exec_())

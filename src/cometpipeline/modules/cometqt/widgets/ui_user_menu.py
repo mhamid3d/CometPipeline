@@ -11,11 +11,11 @@ class UserMenuAction(QtWidgets.QFrame):
         self.setCursor(QtCore.Qt.PointingHandCursor)
         self.mainLayout = QtWidgets.QHBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignLeft)
-        self.mainLayout.setSpacing(10)
+        self.mainLayout.setSpacing(6)
         self.setLayout(self.mainLayout)
         self.label = QtWidgets.QLabel(label)
         self.pixmap = QtGui.QPixmap(icon).scaled(
-            22, 22, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
+            18, 18, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation
         )
         self.icon = QtWidgets.QLabel()
         self.icon.setPixmap(self.pixmap)
@@ -40,6 +40,7 @@ class UserMenuAction(QtWidgets.QFrame):
                 background: none;
                 border: none;
                 border-radius: 1px;
+                padding-left: 5px;
             }
             QFrame:hover{
                 background: #4e4e4e;
@@ -71,31 +72,32 @@ class UserMenu(QtWidgets.QMenu):
         self.mainLayout.addLayout(self.topUserLayout)
         self.userIcon = AvatarLabel(size=42, data=QtCore.QByteArray(self.userObject.avatar.read()))
         self.userObject.avatar.seek(0)
-        self.nameLabel = QtWidgets.QLabel()
-        self.nameLabel.setTextFormat(QtCore.Qt.RichText)
-        self.nameLabel.setText("""
-            <html>
-                <head/>
-                    <body>
-                        <p>
-                            <span style=" font-size: 15pt;">{}</span><br>
-                            <span style=" font-size: 11pt; color:#a6a6a6;">@{}</span>
-                        </p>
-                    </body>
-            </html>
-        """.format(
-            self.userObject.fullName(),
-            self.userObject.get("username")
-        ))
-        self.nameLabel.setIndent(10)
-        self.nameLabel.setStyleSheet("""
+        self.usernameLabel = QtWidgets.QLabel("@{}".format(self.userObject.get("username")))
+        self.fullnameLabel = QtWidgets.QLabel(self.userObject.fullName())
+        for label in [self.usernameLabel, self.fullnameLabel]:
+            label.setIndent(10)
+        self.fullnameLabel.setStyleSheet("""
             QLabel{
+                font-size: 15pt;
                 border-radius: 3px;
-                background: none;
+                background: transparent;
+            }
+        """)
+        self.usernameLabel.setStyleSheet("""
+            QLabel{
+                font-size: 11pt;
+                border-radius: 3px;
+                background: transparent;
+                color: #7e7e7e;
             }
         """)
         self.topUserLayout.addWidget(self.userIcon)
-        self.topUserLayout.addWidget(self.nameLabel)
+        self.nameLayout = QtWidgets.QVBoxLayout()
+        self.nameLayout.setContentsMargins(0, 0, 0, 0)
+        self.topUserLayout.addLayout(self.nameLayout)
+        self.nameLayout.addWidget(self.fullnameLabel)
+        self.nameLayout.addWidget(self.usernameLabel)
+
         self.mainLayout.addWidget(pqtutil.h_line())
         self.setStyleSheet("""
             QMenu{

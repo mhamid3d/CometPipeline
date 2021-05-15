@@ -2,10 +2,10 @@ from qtpy import QtWidgets, QtGui, QtCore
 from pipeicon import icon_paths
 
 
-def h_line():
+def h_line(width=1):
     frame = QtWidgets.QFrame()
     frame.setFrameShape(QtWidgets.QFrame.HLine)
-    frame.setFixedHeight(2)
+    frame.setFixedHeight(width)
     frame.setStyleSheet("""
         QFrame{
             background: #3e3e3e;
@@ -15,10 +15,10 @@ def h_line():
     return frame
 
 
-def v_line():
+def v_line(width=1):
     frame = QtWidgets.QFrame()
     frame.setFrameShape(QtWidgets.QFrame.VLine)
-    frame.setFixedWidth(2)
+    frame.setFixedWidth(width)
     frame.setStyleSheet("""
         QFrame{
             background: #3e3e3e;

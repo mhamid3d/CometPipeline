@@ -1,4 +1,12 @@
-from mongorm import util
 
 
-print(util.getCurrentUser())
+
+l = [
+    '/jobs/CHALK/movies',
+    '/jobs/CHALK',
+    '/jobs/CHALK/renderData/depth/persp'
+]
+
+l.sort()
+
+print(l)

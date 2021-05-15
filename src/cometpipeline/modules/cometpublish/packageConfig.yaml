@@ -113,67 +113,48 @@ publish:
 
 
 packageTypes:
-  - APKG:
-      desc: Asset Package
-      required:
-        - task
-        - lod
-      optional:
-        - label
-  - CACHE:
+  - cache:
       desc: Geometry Cache
       required:
         - task
         - lod
-  - CGR:
-      desc: CG Render
-      required:
-        - task
-        - label
-        - layer
-        - type
-        - prefix
-  - EDIT:
-      desc: Editing
-      required:
-        - type
-  - ELEM:
-      desc: 2D Element
-      required:
-        - task
-  - KMOD:
-      desc: Katana Module
-  - LGTR:
-      desc: Light Rig
-      required:
-        - task
       optional:
-        - label
-  - LOOK:
-      desc: Asset Look File
-  - MODEL:
-      desc: Asset Model
-      optional:
-        - label
         - var
-        - lod
-  - OUT:
-      desc: Presentable 2D Image Sequence
-      required:
-        - task
-        - subtask
-        - label
-  - PLAY:
-      desc: Playblast
-  - QC:
-      desc: Quality Assurance Check
-  - RIG:
+  - cam:
+      desc: Shot Camera
+  - cgr:
+      desc: CG Render
+  - cut:
+      desc: Sequence Edit
+  - elem:
+      desc: Image Element
+  - lgtr:
+      desc: Katana Gaffer Light Rig
+  - kmod:
+      desc: Katna LiveGroup Module
+  - look:
+      desc: Asset Look File
+  - model:
+      desc: Asset Model Geometry
+  - mtpnt:
+      desc: Background Matte Painting
+  - nks:
+      desc: Nuke Script
+  - ocio:
+      desc: Colorspace OCIO Config
+  - out:
+      desc: Output Image Sequence
+  - pkg:
+      desc: USD Scene Assembly
+  - play:
+      desc: Maya Playblast
+  - qc:
+      desc: Shot QC Image Sequence
+  - rig:
       desc: Asset Rig
-  - ROTO:
-      desc: Rotoscope element
-  - SCAN:
-      desc: Plate from source
-  - TEX:
-      desc: Asset Texture
-  - TRACK:
-      desc: 2D Camera Track
+  - scan:
+      desc: Live Action Source Plate
+  - tex:
+      desc: Texture Lobe Image
+  - track:
+      desc: Live Action Plate Track

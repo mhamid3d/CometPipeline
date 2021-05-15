@@ -127,6 +127,9 @@
     <file>ICON_MONITOR_MED.png</file>
     <file>ICON_MONITOR_SML.png</file>
     <file>ICON_NUKE_LRG.png</file>
+    <file>ICON_OCIO_LRG.png</file>
+    <file>ICON_OCIO_MED.png</file>
+    <file>ICON_OCIO_SML.png</file>
     <file>ICON_PACKAGE_LRG.png</file>
     <file>ICON_PACKAGE_MED.png</file>
     <file>ICON_PACKAGE_SML.png</file>

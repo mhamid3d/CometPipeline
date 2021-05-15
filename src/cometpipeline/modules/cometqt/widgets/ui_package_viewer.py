@@ -25,7 +25,8 @@ class AbstractViewerMenu(QtWidgets.QMenu):
             'mel': ['Maya', icon_paths.ICON_MAYA_LRG, ["cmaya", "-file"]],
             'py': ['PyCharm', icon_paths.ICON_PYCHARM_LRG, ["pycharm"]],
             'abc': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]],
-            'usd': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]]
+            'usd': ['USD View', icon_paths.ICON_USD_LRG, ["usdview"]],
+            'ocio': ['Text Editor', icon_paths.ICON_FILE_LRG, ["gedit"]]
         }
 
         self.copyAction = self.addAction(QtGui.QIcon(icon_paths.ICON_COPY_LRG), "Copy")
@@ -60,10 +61,11 @@ class AbstractViewerMenu(QtWidgets.QMenu):
         if self._dataObjects and len(self._dataObjects) == 1:
             dataObject = self._dataObjects[0]
             if hasattr(dataObject, "format"):
-                title, icon, cmd = self._formatToApp[dataObject.get("format")]
-                item = self.openInMenu.addAction(QtGui.QIcon(icon), title)
-                cmd.append(dataObject.get("path"))
-                self.openInAppsMap[item] = cmd
+                if dataObject.get("format") in self._formatToApp:
+                    title, icon, cmd = self._formatToApp[dataObject.get("format")]
+                    item = self.openInMenu.addAction(QtGui.QIcon(icon), title)
+                    cmd.append(dataObject.abs_path())
+                    self.openInAppsMap[item] = cmd
 
 
 class PackageTypeNavigator(QtWidgets.QScrollArea):
@@ -90,24 +92,44 @@ class PackageTypeNavigator(QtWidgets.QScrollArea):
         self.packageTypeButtonGroup = QtWidgets.QButtonGroup()
         self.packageTypeButtonGroup.setExclusive(False)
         self.packageTypes = list(package_util.getPackageTypesDict().keys())
-        self.packageTypes.insert(0, "All")
         self.defaultButtonStyle = """
                 QPushButton{
-                    border: none;
+                    border: 1px solid #3e3e3e;
+                    background: transparent;
+                    color: #6e6e6e;
                 }
                 QPushButton:!checked:hover{
-                    background: #4e4e4e;
+                    border: 1px solid white;
+                    color: white;
                 }
                 QPushButton:pressed{
-                    background: #1e1e1e;
+                }
+                QPushButton:checked{
+                    color: white;
+                    border: 1px solid white;
+                    background: #5e5e5e;
                 }
             """
         self.setup_ui()
 
-        self.packageTypeButtonGroup.buttonClicked.connect(self.updateButtonsToggle)
-        self.updateButtonsToggle(self.packageTypeButtonGroup.button(0))
+        self.packageTypeButtonGroup.buttonClicked.connect(
+            lambda: self.filteredTypesChanged.emit(self.getFilteredTypes())
+        )
 
     def setup_ui(self):
+
+        self.settingsButton = QtWidgets.QPushButton()
+        self.settingsButton.setCursor(QtCore.Qt.PointingHandCursor)
+        self.settingsButton.setIcon(QtGui.QIcon(icon_paths.ICON_VMENU_LRG))
+        self.settingsButton.setStyleSheet(self.defaultButtonStyle)
+        self.mainLayout.addWidget(self.settingsButton)
+        self.mainLayout.addWidget(cqtutil.v_line())
+
+        self.settingsMenu = QtWidgets.QMenu(self)
+        self.selectAllAction = self.settingsMenu.addAction("Select All")
+        self.selectNoneAction = self.settingsMenu.addAction("Select None")
+        self.settingsButton.clicked.connect(self.showSettingsMenu)
+
         for idx, packageType in enumerate(self.packageTypes):
             packageTypeButton = QtWidgets.QPushButton(packageType)
             packageTypeButton.setCursor(QtCore.Qt.PointingHandCursor)
@@ -116,74 +138,57 @@ class PackageTypeNavigator(QtWidgets.QScrollArea):
             packageTypeButton.setStyleSheet(self.defaultButtonStyle)
             self.packageTypeButtonGroup.addButton(packageTypeButton, idx)
             self.mainLayout.addWidget(packageTypeButton)
-            if idx == 0:
-                packageTypeButton.setToolTip("Show all package types")
-                self.mainLayout.addWidget(cqtutil.v_line())
-                packageTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_VMENU_LRG))
-            else:
-                tooltip = package_util.getPackageTypesDict()[packageType]['desc']
-                packageTypeButton.setToolTip(tooltip)
 
-        self.packageTypeButtonGroup.button(0).setChecked(True)
+            tooltip = package_util.getPackageTypesDict()[packageType]['desc']
+            packageTypeButton.setToolTip(tooltip)
 
     def getFilteredTypes(self):
-        if self.packageTypeButtonGroup.button(0).isChecked():
-            return self.packageTypes[1:]
-
         filteredTypes = []
-        for button in self.packageTypeButtonGroup.buttons()[1:]:
+        for button in self.packageTypeButtonGroup.buttons():
             if button.isChecked():
                 filteredTypes.append(self.packageTypes[self.packageTypeButtonGroup.id(button)])
 
         return filteredTypes
 
     def setFilteredTypes(self, filteredTypes=[]):
-        if filteredTypes == self.packageTypes[1:]:
-            self.packageTypeButtonGroup.button(0).setChecked(True)
-            self.updateButtonsToggle(self.packageTypeButtonGroup.button(0))
-            return
 
-        buttonIds = [self.packageTypes.index(type) for type in filteredTypes]
-        for button in self.packageTypeButtonGroup.buttons():
-            id = self.packageTypeButtonGroup.id(button)
-            button.blockSignals(True)
-            button.setChecked(False)
-            if id in buttonIds:
+        if not filteredTypes:
+            for button in self.packageTypeButtonGroup.buttons():
+                button.blockSignals(True)
+                button.setChecked(False)
+                button.blockSignals(False)
+
+        elif filteredTypes == self.packageTypes:
+            for button in self.packageTypeButtonGroup.buttons():
+                button.blockSignals(True)
                 button.setChecked(True)
-            button.blockSignals(False)
+                button.blockSignals(False)
+        else:
+            validTypes = [x for x in filteredTypes if x in self.packageTypes]
 
-        self.updateButtonsToggle(button)
-
-    def updateButtonsToggle(self, *args):
-
-        releasedButton = None
-        if args:
-            releasedButton = args[0]
-
-        allButtonChecked = self.packageTypeButtonGroup.button(0).isChecked()
-
-        if releasedButton:
-            # If the 'All' button was just toggled on
-            if allButtonChecked and releasedButton == self.packageTypeButtonGroup.button(0):
-                for button in self.packageTypeButtonGroup.buttons()[1:]:
-                    button.setChecked(False)
-                    button.setStyleSheet("""
-                    QPushButton{
-                        background: #0e5f8e;
-                        border: none;
-                    }
-                """)
-            # If the 'All' is already toggled and another button was just pressed
-            elif allButtonChecked and not releasedButton == self.packageTypeButtonGroup.button(0):
-                self.packageTypeButtonGroup.button(0).setChecked(False)
-                for button in self.packageTypeButtonGroup.buttons()[1:]:
-                    button.setStyleSheet(self.defaultButtonStyle)
-            # If the 'All' button was just toggled off
-            elif not allButtonChecked and releasedButton == self.packageTypeButtonGroup.button(0):
-                for button in self.packageTypeButtonGroup.buttons()[1:]:
-                    button.setStyleSheet(self.defaultButtonStyle)
+            buttonIds = [self.packageTypes.index(type) for type in validTypes]
+            for button in self.packageTypeButtonGroup.buttons():
+                id = self.packageTypeButtonGroup.id(button)
+                button.blockSignals(True)
+                button.setChecked(False)
+                if id in buttonIds:
+                    button.setChecked(True)
+                button.blockSignals(False)
 
         self.filteredTypesChanged.emit(self.getFilteredTypes())
+
+    def showSettingsMenu(self):
+
+        bottomLeft = self.settingsButton.rect().bottomLeft()
+
+        globalPoint = self.mapToGlobal(bottomLeft)
+        globalPoint.setY(globalPoint.y() + 5)
+        action = self.settingsMenu.exec_(globalPoint)
+
+        if action == self.selectAllAction:
+            self.setFilteredTypes(self.packageTypes)
+        elif action == self.selectNoneAction:
+            self.setFilteredTypes([])
 
 
 class PaginatorWidget(QtWidgets.QFrame):
@@ -303,7 +308,7 @@ class PackageTree(TreeView):
             cb.clear(mode=cb.Clipboard)
             cb.setText(copyStr, mode=cb.Clipboard)
         elif self.main_action == self._menu.copyPathAction:
-            copyStr = "\n".join([x.dataObject.get("path") for x in selectedItems])
+            copyStr = "\n".join([x.dataObject.abs_path() for x in selectedItems])
             cb = QtWidgets.QApplication.clipboard()
             cb.clear(mode=cb.Clipboard)
             cb.setText(copyStr, mode=cb.Clipboard)
@@ -347,7 +352,7 @@ class PackageTree(TreeView):
 
             self.model().dataNeedsRefresh.emit()
         elif self.main_action in [self._menu.openInExplorerAction, self._menu.openInTerminalAction]:
-            filePaths = [x.dataObject.get("path") for x in selectedItems]
+            filePaths = [x.dataObject.abs_path() for x in selectedItems]
             for path in filePaths:
                 if self.main_action == self._menu.openInExplorerAction:
                     if platform == "linux" or platform == "linux2":

@@ -78,7 +78,7 @@ class DataInterface(object):
                 obj.path = os.path.join("/", obj.job, obj.label)
             elif self._db_name == "package":
                 obj.path = cometpublish.util.packageTargetPath(obj.parent(), obj.type, obj.label)
-            elif self._db_name == "version" or self._db_name == "content":
+            elif self._db_name == "version":
                 obj.path = os.path.join(obj.parent().rel_path(), obj.label)
             elif self._db_name == "content":
                 # TODO: what's going to happen if we have a "#" in there for file sequences?

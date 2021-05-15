@@ -69,10 +69,7 @@ class AssetManagerPage(QtWidgets.QWidget):
 
         self.entityViewer = EntityViewer()
         self.entityViewer.setCurrentJob(self._currentJob)
-        self.entityViewer.setEntityType(self.entityViewer.TYPE_ASSETS)
         self.entityViewer.topLabel.hide()
-        self.entityViewer.assetsButton.hide()
-        self.entityViewer.productionButton.hide()
         self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
 
         self.mainLayout.addLayout(self.editorLayout)
@@ -197,10 +194,7 @@ class ProductionManagerPage(QtWidgets.QWidget):
 
         self.entityViewer = EntityViewer()
         self.entityViewer.setCurrentJob(self._currentJob)
-        self.entityViewer.setEntityType(self.entityViewer.TYPE_PRODUCTION)
         self.entityViewer.topLabel.hide()
-        self.entityViewer.assetsButton.hide()
-        self.entityViewer.productionButton.hide()
         self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
 
         self.mainLayout.addLayout(self.editorLayout)
@@ -512,6 +506,8 @@ class ProductionManagerPage(QtWidgets.QWidget):
                     LOGGER.info("Removing database entry: {}".format(obj))
                     obj.delete()
 
+            prunePaths.sort()
+
             for path in prunePaths:
                 if os.path.exists(path):
                     LOGGER.info("Deleting path: {}".format(path))
@@ -574,7 +570,7 @@ class DangerZonePage(QtWidgets.QWidget):
             all_objects.append(self._currentJob)
 
         for obj in all_objects:
-            if not obj.path:
+            if obj.path:
                 prune_paths.append(obj.abs_path())
             LOGGER.info("Removing database entry: {}".format(obj))
             obj.delete()
@@ -618,13 +614,25 @@ class ProjectManager(QtWidgets.QDialog):
 
         self.setWindowTitle("Project Manager: [{}]".format(self._currentJob.get("label")))
 
+        self.scrollArea = QtWidgets.QScrollArea()
+        self.scrollWidget = QtWidgets.QWidget()
+        self.scrollArea.setWidget(self.scrollWidget)
+        self.scrollArea.setWidgetResizable(True)
+        self.settingsLayout = QtWidgets.QVBoxLayout()
+        self.scrollWidget.setLayout(self.settingsLayout)
+        self.settingsLayout.setAlignment(QtCore.Qt.AlignTop)
+
         self.settingsButtonGroup = QtWidgets.QButtonGroup()
         self.generalOptionsButton = QtWidgets.QPushButton("General Options")
         self.assetManagerButton = QtWidgets.QPushButton("Asset Manager")
         self.productionManagerButton = QtWidgets.QPushButton("Production Manager")
         self.dangerZoneButton = QtWidgets.QPushButton("Danger Zone")
+
+        self.crewManagerButton = QtWidgets.QPushButton("Crew Manager")
+
         self.closeButton = QtWidgets.QPushButton("CLOSE")
         self.closeButton.setMinimumSize(QtCore.QSize(85, 42))
+        self.closeButton.setCursor(QtCore.Qt.PointingHandCursor)
         self.settingsButtonGroup.buttonClicked.connect(self.page_changed)
         self.closeButton.clicked.connect(self.accept)
 
@@ -632,41 +640,66 @@ class ProjectManager(QtWidgets.QDialog):
         self.settingsButtonGroup.addButton(self.assetManagerButton, id=1)
         self.settingsButtonGroup.addButton(self.productionManagerButton, id=2)
         self.settingsButtonGroup.addButton(self.dangerZoneButton, id=3)
+        self.settingsButtonGroup.addButton(self.crewManagerButton, id=4)
 
         self.mainAreaLayout = QtWidgets.QHBoxLayout()
-        self.settingsButtonsWidget = QtWidgets.QWidget()
-        self.settingsButtonsLayout = QtWidgets.QVBoxLayout()
         self.bottomLayout = QtWidgets.QHBoxLayout()
         self.bottomLayout.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignBottom)
-        self.settingsButtonsWidget.setMinimumWidth(200)
-        self.settingsButtonsWidget.setLayout(self.settingsButtonsLayout)
-        self.settingsButtonsLayout.setAlignment(QtCore.Qt.AlignTop)
-        self.settingsButtonsLayout.setContentsMargins(0, 0, 0, 0)
-        self.settingsButtonsLayout.setSpacing(0)
 
         self.mainLayout.addLayout(self.mainAreaLayout)
-        self.mainAreaLayout.addWidget(self.settingsButtonsWidget)
-        self.settingsButtonsLayout.addWidget(self.generalOptionsButton)
-        self.settingsButtonsLayout.addWidget(self.assetManagerButton)
-        self.settingsButtonsLayout.addWidget(self.productionManagerButton)
-        self.settingsButtonsLayout.addWidget(self.dangerZoneButton)
-        self.mainLayout.addLayout(self.bottomLayout)
+        self.mainAreaLayout.addWidget(self.scrollArea)
+        # self.settingsLayout.addWidget(QtWidgets.QLabel("General Settings"))
+        self.settingsLayout.addWidget(self.generalOptionsButton)
+        self.settingsLayout.addWidget(self.assetManagerButton)
+        self.settingsLayout.addWidget(self.productionManagerButton)
+        self.settingsLayout.addWidget(self.dangerZoneButton)
+        self.settingsLayout.addWidget(cqtutil.h_line())
+        self.settingsLayout.addWidget(self.crewManagerButton)
         self.bottomLayout.addWidget(self.closeButton)
         self.bottomLayout.setContentsMargins(9, 9, 9, 9)
 
+        self.scrollArea.setStyleSheet("""
+            QScrollArea{
+                border-radius: 0px;
+                border: none;
+            }
+            QScrollBar{
+                width: 10px;
+            }
+            QLabel{
+                color: #5e5e5e;
+                font: bold;
+            }
+        """)
+        self.scrollWidget.setStyleSheet("QWidget{background: #2f2f2f;}")
         for button in self.settingsButtonGroup.buttons():
             button.setCheckable(True)
             button.setStyleSheet("""
                 QPushButton{
+                    text-align: left;
                     border: none;
-                    border-radius: none;
+                    border-radius: 5px;
+                    border-bottom-left-radius: 0px;
+                    border-top-left-radius: 0px;
+                    background: transparent;
+                    padding: 9px;
+                    font-size: 13px;
+                }
+                QPushButton:!checked:hover{
+                    background: #333333;
                 }
                 QPushButton:checked{
+                    background: #3e3e3e;
                     border-left: 4px solid #148CD2;
                 }
             """)
+            button.setCursor(QtCore.Qt.PointingHandCursor)
 
         self.settingsButtonGroup.button(0).setChecked(True)
+
+        self.workingAreaLayout = QtWidgets.QVBoxLayout()
+        self.workingAreaLayout.setContentsMargins(9, 9, 9, 9)
+        # self.workingAreaLayout.setSpacing(0)
 
         self.pagesStack = QtWidgets.QStackedWidget()
         self.generalOptionsPage = GeneralOptionsPage(parent=self, jobObject=self._currentJob)
@@ -677,7 +710,11 @@ class ProjectManager(QtWidgets.QDialog):
         self.pagesStack.addWidget(self.assetManagerPage)
         self.pagesStack.addWidget(self.productionManagerPage)
         self.pagesStack.addWidget(self.dangerZonePage)
-        self.mainAreaLayout.addWidget(self.pagesStack)
+        self.mainAreaLayout.addLayout(self.workingAreaLayout)
+        self.workingAreaLayout.addWidget(self.pagesStack)
+        self.workingAreaLayout.addWidget(cqtutil.h_line())
+        self.workingAreaLayout.addLayout(self.bottomLayout)
+        # self.mainAreaLayout.addWidget(self.pagesStack)
 
     def page_changed(self):
         current_idx = self.settingsButtonGroup.id(self.settingsButtonGroup.checkedButton())
@@ -691,7 +728,7 @@ if __name__ == '__main__':
 
     h = mongorm.getHandler()
     f = mongorm.getFilter()
-    f.search(h['job'], label='DELOREAN')
+    f.search(h['job'], label='dlr')
     job = h['job'].one(f)
 
     app = QtWidgets.QApplication(sys.argv)

@@ -109,13 +109,14 @@ class ProjectBrowserMain(BaseMainWindow):
     def saveSettings(self):
         self.settings.beginGroup("project")
         self.settings.setValue("current_job", self._currentJob.label if self._currentJob else "none")
-        self.settings.setValue("entity_type", self.productionPage.entityViewer.entityType)
-        entities = self.productionPage.entityViewer.selectedEntities()
-        if entities:
-            entities = [x.getUuid() for x in entities]
-            self.settings.setValue("current_entity", entities)
-        else:
-            self.settings.setValue("current_entity", "none")
+        curr_item = self.productionPage.entityViewer.entityTree.currentItem()
+        if curr_item:
+            entity = curr_item.dataObject
+            if entity:
+                entity = entity.getUuid()
+                self.settings.setValue("current_entity", entity)
+            else:
+                self.settings.setValue("current_entity", "none")
 
         self.settings.endGroup()
 
@@ -135,8 +136,6 @@ class ProjectBrowserMain(BaseMainWindow):
             jobObject = handler['job'].one(filter)
             if jobObject:
                 self.setCurrentJob(jobObject)
-                entity_type = self.settings.value("project/entity_type")
-                self.productionPage.entityViewer.setEntityType(entity_type)
 
                 current_entity = self.settings.value("project/current_entity")
                 if current_entity:
