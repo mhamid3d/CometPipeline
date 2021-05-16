@@ -60,6 +60,52 @@ class UserMenuAction(QtWidgets.QFrame):
                 self.exc()
 
 
+class UserCard(QtWidgets.QPushButton):
+    def __init__(self, userObject=None, parent=None):
+        super(UserCard, self).__init__(parent=None)
+        self._userObject = userObject
+        self.mainLayout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.mainLayout)
+        self.mainLayout.setContentsMargins(0, 9, 0, 9)
+        self.topUserLayout = QtWidgets.QHBoxLayout()
+        self.topUserLayout.setContentsMargins(9, 9, 9, 9)
+        self.mainLayout.addLayout(self.topUserLayout)
+        self.userIcon = AvatarLabel(size=42, data=QtCore.QByteArray(self._userObject.avatar.read()))
+        self._userObject.avatar.seek(0)
+        self.usernameLabel = QtWidgets.QLabel("@{}".format(self._userObject.get("username")))
+        self.fullnameLabel = QtWidgets.QLabel(self._userObject.fullname())
+        for label in [self.usernameLabel, self.fullnameLabel]:
+            label.setIndent(10)
+        self.fullnameLabel.setStyleSheet("""
+            QLabel{
+                font-size: 15pt;
+                border-radius: 3px;
+                background: transparent;
+            }
+        """)
+        self.usernameLabel.setStyleSheet("""
+            QLabel{
+                font-size: 11pt;
+                border-radius: 3px;
+                background: transparent;
+                color: #7e7e7e;
+            }
+        """)
+        self.topUserLayout.addWidget(self.userIcon)
+        self.nameLayout = QtWidgets.QVBoxLayout()
+        self.nameLayout.setContentsMargins(0, 0, 0, 0)
+        self.topUserLayout.addLayout(self.nameLayout)
+        self.nameLayout.addWidget(self.fullnameLabel)
+        self.nameLayout.addWidget(self.usernameLabel)
+        self.setStyleSheet("""
+            QPushButton{
+                icon-size: 60px;
+                background: #333333;
+                border: 1px solid #3e3e3e;
+            }
+        """)
+
+
 class UserMenu(QtWidgets.QMenu):
     def __init__(self, userObject=None, parent=None):
         super(UserMenu, self).__init__(parent)
@@ -73,7 +119,7 @@ class UserMenu(QtWidgets.QMenu):
         self.userIcon = AvatarLabel(size=42, data=QtCore.QByteArray(self.userObject.avatar.read()))
         self.userObject.avatar.seek(0)
         self.usernameLabel = QtWidgets.QLabel("@{}".format(self.userObject.get("username")))
-        self.fullnameLabel = QtWidgets.QLabel(self.userObject.fullName())
+        self.fullnameLabel = QtWidgets.QLabel(self.userObject.fullname())
         for label in [self.usernameLabel, self.fullnameLabel]:
             label.setIndent(10)
         self.fullnameLabel.setStyleSheet("""

@@ -112,7 +112,13 @@ class DataInterface(object):
         elif isinstance(uuid, list):
             dataContainer = mongorm.createContainer(self)
             for uid in uuid:
-                dataContainer.append_object(self.get(uid))
+                obj = self.get(uid)
+                if obj:
+                    dataContainer.append_object(obj)
+
+            if not dataContainer.hasObjects():
+                return None
+
             return dataContainer
 
     def name(self):

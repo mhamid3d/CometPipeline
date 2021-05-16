@@ -23,3 +23,23 @@ FORMAT_TO_ICON = {
     'usd': icon_paths.ICON_USD_LRG,
     'ocio': icon_paths.ICON_OCIO_LRG
 }
+
+CREW_TYPES = [
+            "Creator",
+            "Admins",
+            "Director",
+            "Producer",
+            "Art Director",
+            "Production",
+            "Previs",
+            "Matte Painting",
+            "Layout",
+            "Animation",
+            "CFX",
+            "FX",
+            "Lighting",
+            "Compositing",
+            "Lookdev",
+            "Rigging",
+            "Editorial"
+        ]

@@ -1,13 +1,16 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from cometqt.widgets.ui_entity_viewer import EntityViewer
 from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
+from cometqt.widgets.ui_user_avatar import AvatarLabel
+from cometpipe.core import CREW_TYPES
 from cometqt import util as cqtutil
 from mongorm import util as mgutil
+from pipeicon import icon_paths
 import cometpublish
 import mongorm
-import datetime
 import logging
 import shutil
+import qdarkstyle
 import os
 
 
@@ -27,10 +30,276 @@ def remove_confirm_dialog(dataObject):
     return msgBox
 
 
+class UserSearch(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(UserSearch, self).__init__(parent=parent)
+        self.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
+        self.setWindowTitle("Find User")
+        self.setMinimumWidth(300)
+        self.mainLayout = QtWidgets.QVBoxLayout()
+        self.setLayout(self.mainLayout)
+        self.userComboBox = QtWidgets.QComboBox(self)
+        self.userComboBox.setStyleSheet("padding: 9px;")
+        self.applyButton = QtWidgets.QPushButton("Apply")
+        self.mainLayout.addWidget(self.userComboBox)
+        self.mainLayout.addWidget(self.applyButton, alignment=QtCore.Qt.AlignRight)
+
+        db = mongorm.getHandler()
+        flt = mongorm.getFilter()
+        flt.search(db['user'])
+        users = db['user'].all(flt)
+
+        for usr in users:
+            avt = AvatarLabel(size=60, data=QtCore.QByteArray(usr.avatar.read()))
+            usr.avatar.seek(0)
+            self.userComboBox.addItem(QtGui.QIcon(avt.getRounded()), usr.fullname(), usr)
+
+        self.applyButton.clicked.connect(self.accept)
+
+    def result(self):
+        idx = self.userComboBox.currentIndex()
+        data = self.userComboBox.itemData(idx)
+        return data
+
+
+class UserItem(QtWidgets.QFrame):
+    def __init__(self, userObject=None, parent=None, crewType="", jobObject=None):
+        super(UserItem, self).__init__(parent=parent)
+        self.crewPage = parent
+        self.crewType = crewType
+        self.userObject = userObject
+        self.jobObejct = jobObject
+        self.mainLayout = QtWidgets.QVBoxLayout()
+        self.mainLayout.setContentsMargins(3, 3, 3, 3)
+        self.setLayout(self.mainLayout)
+        self.userLayout = QtWidgets.QHBoxLayout()
+        self.usernameLayout = QtWidgets.QVBoxLayout()
+        self.xred = QtWidgets.QPushButton(self)
+        self.xred.setFixedSize(26, 26)
+        self.xred.setIcon(QtGui.QIcon(icon_paths.ICON_XRED_LRG))
+        self.xred.setStyleSheet("""
+            QPushButton{
+                background: transparent;
+                border: none;
+            }
+        """)
+        self.xred.setCursor(QtCore.Qt.PointingHandCursor)
+        self.xred.hide()
+        self.mainLayout.addLayout(self.userLayout)
+        icon = AvatarLabel(size=60, data=QtCore.QByteArray(userObject.avatar.read()))
+        userObject.avatar.seek(0)
+        name = QtWidgets.QLabel(userObject.fullname())
+        name.setStyleSheet("font-weight: bold;")
+        username = QtWidgets.QLabel("@{}".format(userObject.get("username")))
+        username.setStyleSheet("font: 14px; color: #a6a6a6;")
+        self.userLayout.addWidget(icon)
+        self.userLayout.addLayout(self.usernameLayout)
+        self.usernameLayout.addWidget(name)
+        self.usernameLayout.addWidget(username)
+        self.userLayout.setContentsMargins(0, 0, 0, 0)
+        self.userLayout.setSpacing(0)
+        self.setStyleSheet("""
+            QFrame{
+                border: 2px solid #4e4e4e;
+                background: transparent;
+                border-radius: 12px;
+                font-weight: bold;
+                font: 14px;
+                padding: 9px;
+            }
+            QFrame:hover{
+                border-color: #6e6e6e;
+            }
+            QLabel{
+                border: none;
+                padding: 0px;
+                padding-left: 9px;
+            }
+        """)
+        self.setMouseTracking(True)
+
+        self.xred.clicked.connect(self.removeUser)
+
+    def enterEvent(self, event):
+        self.xred.show()
+
+        return super(UserItem, self).enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.xred.hide()
+
+        return super(UserItem, self).leaveEvent(event)
+
+    def resizeEvent(self, event):
+        result = super(UserItem, self).resizeEvent(event)
+        self.updateXPos()
+        return result
+
+    def updateXPos(self):
+        pos = self.rect().topLeft()
+        pos.setX(pos.x() + 1)
+        pos.setY(pos.y() + 1)
+
+        self.xred.move(pos)
+
+    def removeUser(self):
+        self.crewPage.removeUser(self.userObject, self.crewType)
+
+        self.deleteLater()
+        del self
+
+
+class AddUserButton(QtWidgets.QPushButton):
+    def __init__(self, jobObject=None, parent=None, crewType=""):
+        super(AddUserButton, self).__init__(parent=parent)
+        self.crewPage = parent
+        self.jobObject = jobObject
+        self.crewType = crewType
+        self.setStyleSheet("""
+            QPushButton{
+                border: 2px dashed #4e4e4e;
+                background: transparent;
+                border-radius: 15px;
+            }
+            QPushButton:hover{
+                border-color: #6e6e6e;
+            }
+        """)
+        self.setFixedSize(84, 84)
+        self.setIcon(QtGui.QIcon(icon_paths.ICON_PLUS_LRG))
+        self.setCursor(QtCore.Qt.PointingHandCursor)
+        self.clicked.connect(self.addUser)
+
+    def addUser(self):
+        usrSearch = UserSearch(parent=self)
+        result = usrSearch.exec_()
+        if result == QtWidgets.QDialog.Rejected:
+            return None
+        else:
+            userObject = usrSearch.result()
+            if userObject:
+                self.crewPage.addUser(userObject, self.crewType)
+
+
 class GeneralOptionsPage(QtWidgets.QWidget):
     def __init__(self, parent=None, jobObject=None):
         super(GeneralOptionsPage, self).__init__(parent=parent)
         self._currentJob = jobObject
+        self.mainLayout = QtWidgets.QVBoxLayout(self)
+        self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        self.setLayout(self.mainLayout)
+        label = QtWidgets.QLabel("General Options")
+        label.setStyleSheet("font: 18px; font-weight: bold;")
+        self.mainLayout.addWidget(label)
+
+        self.scrollArea = QtWidgets.QScrollArea(self)
+        self.scrollWidget = QtWidgets.QWidget()
+        self.scrollArea.setWidget(self.scrollWidget)
+        self.formLayout = cqtutil.FormVBoxLayout()
+        # self.scrollLayout = QtWidgets.QVBoxLayout()
+        # self.scrollLayout.setAlignment(QtCore.Qt.AlignTop)
+        self.scrollWidget.setLayout(self.formLayout)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setStyleSheet("""
+            QScrollArea{
+                border-radius: 0px;
+                border: none;
+            }
+            QScrollBar{
+                width: 10px;
+            }
+        """)
+
+        self.mainLayout.addWidget(self.scrollArea)
+
+
+        # Full Title
+        self.projectNameLine = QtWidgets.QLineEdit()
+        self.projectNameLine.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp("[A-Za-z 0-9]{0,100}"), self))
+
+        # Alias
+        self.projectAliasLine = QtWidgets.QLineEdit()
+
+        # Resolution
+        self.resolutionLayout = QtWidgets.QHBoxLayout()
+        self.xResSpin = QtWidgets.QSpinBox()
+        self.yResSpin = QtWidgets.QSpinBox()
+        self.aspectSpin = QtWidgets.QDoubleSpinBox()
+        self.xResSpin.setMinimum(1)
+        self.yResSpin.setMinimum(1)
+        self.xResSpin.setMaximum(99999)
+        self.yResSpin.setMaximum(99999)
+        self.xResSpin.setValue(1920)
+        self.yResSpin.setValue(1080)
+        self.aspectSpin.setMinimum(0.0)
+        self.aspectSpin.setMaximum(99999)
+        self.aspectSpin.setValue(1.0)
+        self.aspectSpin.setSingleStep(0.1)
+        self.xResSpin.setSingleStep(100)
+        self.yResSpin.setSingleStep(100)
+        self.resolutionLayout.addWidget(self.xResSpin)
+        self.resolutionLayout.addWidget(self.yResSpin)
+        self.resolutionLayout.addWidget(self.aspectSpin)
+        self.resolutionLayout.setContentsMargins(0, 0, 0, 0)
+        spinStyle = """
+            QSpinBox,
+            QDoubleSpinBox{
+                border-radius: 0px;
+                padding: 7px;
+                background: background;
+            }
+        """
+        # self.xResSpin.setStyleSheet(spinStyle)
+        # self.yResSpin.setStyleSheet(spinStyle)
+        # self.aspectSpin.setStyleSheet(spinStyle)
+        self.xResSpin.setFixedHeight(42)
+        self.yResSpin.setFixedHeight(42)
+        self.aspectSpin.setFixedHeight(42)
+
+        # Full Title
+        self.projectDescription = QtWidgets.QLineEdit()
+
+        self.colorSpaceFrame = QtWidgets.QFrame()
+        self.colorSpaceLayout = QtWidgets.QHBoxLayout()
+        self.colorSpaceLayout.setContentsMargins(0, 0, 0, 0)
+        self.colorSpaceFrame.setLayout(self.colorSpaceLayout)
+        self.colorSpaceLine = QtWidgets.QLineEdit("")
+        self.colorSpaceLine.setReadOnly(True)
+        self.colorSpaceBrowse = QtWidgets.QPushButton("Browse")
+        self.colorSpaceBrowse.setFixedHeight(42)
+        self.colorSpaceLayout.addWidget(self.colorSpaceLine)
+        self.colorSpaceLayout.addWidget(self.colorSpaceBrowse)
+        self.colorSpaceBrowse.setStyleSheet("""
+            QPushButton{
+                color: #6e6e6e;
+                background: none;
+                border: 1px solid #6e6e6e;
+                border-radius: 0px;
+                font: bold 14px;
+            }
+            QPushButton:hover{
+                color: #9e9e9e;
+                border: 1px solid #9e9e9e;
+            }
+            QPushButton:pressed{
+                background: #3e3e3e;
+            }
+        """)
+        self.colorSpaceBrowse.setCursor(QtCore.Qt.PointingHandCursor)
+        self.colorSpaceFrame.setStyleSheet("""
+            QFrame{
+                border: none;
+                background: none;
+            }
+        """)
+        self.colorSpaceFileDialog = QtWidgets.QFileDialog()
+        # self.colorSpaceBrowse.clicked.connect(self.colorspace_browse)
+
+        self.formLayout.addRow("FULL TITLE", self.projectNameLine)
+        self.formLayout.addRow("ALIAS", self.projectAliasLine, tip="Project code that will be used for all of production. Must be 3 characters long.")
+        self.formLayout.addRow("RESOLUTION", self.resolutionLayout, tip="(X), (Y), (ASPECT RATIO)")
+        self.formLayout.addRow("DESCRIPTION", self.projectDescription)
+        self.formLayout.addRow("OCIO CONFIG", self.colorSpaceFrame, tip="The config will be copied and published to the job")
 
 
 class AssetManagerPage(QtWidgets.QWidget):
@@ -598,6 +867,105 @@ class DangerZonePage(QtWidgets.QWidget):
         QtGui.qApp.exit(ProjectBrowserBootstrap.EXIT_CODE_REBOOT)
 
 
+class CrewManagerPage(QtWidgets.QWidget):
+    def __init__(self, parent=None, jobObject=None):
+        super(CrewManagerPage, self).__init__(parent=parent)
+        self._currentJob = jobObject
+        self.mainLayout = QtWidgets.QVBoxLayout(self)
+        self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        self.setLayout(self.mainLayout)
+        label = QtWidgets.QLabel("Crew Manager")
+        label.setStyleSheet("font: 18px; font-weight: bold;")
+        self.mainLayout.addWidget(label)
+        self.crewTypes = CREW_TYPES
+
+        self.scrollArea = QtWidgets.QScrollArea(self)
+        self.scrollWidget = QtWidgets.QWidget()
+        self.scrollArea.setWidget(self.scrollWidget)
+        self.scrollLayout = QtWidgets.QVBoxLayout()
+        self.scrollLayout.setAlignment(QtCore.Qt.AlignTop)
+        self.scrollWidget.setLayout(self.scrollLayout)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setStyleSheet("""
+            QScrollArea{
+                border-radius: 0px;
+                border: none;
+            }
+            QScrollBar{
+                width: 10px;
+            }
+        """)
+
+        self.mainLayout.addWidget(self.scrollArea)
+
+        self._layoutCache = {}
+        db = mongorm.getHandler()
+
+        for crewType in self.crewTypes:
+            label = QtWidgets.QLabel(crewType)
+            label.setStyleSheet("font: 12px; font-weight: bold; color: #6e6e6e")
+            self.scrollLayout.addWidget(label)
+            crewWidget = QtWidgets.QWidget()
+            crewLayout = cqtutil.FlowLayout()
+            crewWidget.setLayout(crewLayout)
+            self.scrollLayout.addWidget(crewWidget)
+
+            self._layoutCache[crewType] = crewLayout
+
+            crewMemebers = db['user'].get(self._currentJob.crew[crewType])
+
+            if crewMemebers:
+                for member in crewMemebers:
+                    userButton = UserItem(userObject=member, parent=self, crewType=crewType, jobObject=self._currentJob)
+                    if crewType == "Creator":
+                        userButton.xred.setDisabled(True)
+                    crewLayout.addWidget(userButton)
+
+            if crewType is not "Creator":
+                addNewWidget = AddUserButton(jobObject=self._currentJob, parent=self, crewType=crewType)
+                crewLayout.addWidget(addNewWidget)
+
+    def addUser(self, userObject, crewType):
+        if not self._layoutCache[crewType]:
+            raise RuntimeError("No Layout found for crew type: {}".format(crewType))
+
+        if not userObject:
+            raise RuntimeError("Tried to add a None object to {}".format(crewType))
+
+        layout = self._layoutCache[crewType]
+        existingUsrWidgets = [x.widget() for x in layout.itemList if isinstance(x.widget(), UserItem)]
+        existingUsrUuids = [x.userObject.getUuid() for x in existingUsrWidgets]
+
+        if userObject.getUuid() in existingUsrUuids:
+            return False
+
+        jobCrew = self._currentJob.crew_dict()
+        crewMem = jobCrew[crewType]
+        if userObject.getUuid() not in crewMem:
+            crewMem.append(userObject.getUuid())
+        jobCrew[crewType] = crewMem
+        self._currentJob.crew = jobCrew
+        self._currentJob.save()
+
+        userButton = UserItem(userObject=userObject, parent=self, crewType=crewType, jobObject=self._currentJob)
+        layout.insertWidget(layout.count() - 2, userButton)
+
+    def removeUser(self, userObject, crewType):
+        if not self._layoutCache[crewType]:
+            raise RuntimeError("No Layout found for crew type: {}".format(crewType))
+
+        if not userObject:
+            raise RuntimeError("Tried to remove a None object to {}".format(crewType))
+
+        jobCrew = self._currentJob.crew_dict()
+        crewMem = jobCrew[crewType]
+        if userObject.getUuid() in crewMem:
+            crewMem.remove(userObject.getUuid())
+        jobCrew[crewType] = crewMem
+        self._currentJob.crew = jobCrew
+        self._currentJob.save()
+
+
 class ProjectManager(QtWidgets.QDialog):
 
     def __init__(self, parent=None, jobObject=None):
@@ -648,7 +1016,6 @@ class ProjectManager(QtWidgets.QDialog):
 
         self.mainLayout.addLayout(self.mainAreaLayout)
         self.mainAreaLayout.addWidget(self.scrollArea)
-        # self.settingsLayout.addWidget(QtWidgets.QLabel("General Settings"))
         self.settingsLayout.addWidget(self.generalOptionsButton)
         self.settingsLayout.addWidget(self.assetManagerButton)
         self.settingsLayout.addWidget(self.productionManagerButton)
@@ -699,22 +1066,22 @@ class ProjectManager(QtWidgets.QDialog):
 
         self.workingAreaLayout = QtWidgets.QVBoxLayout()
         self.workingAreaLayout.setContentsMargins(9, 9, 9, 9)
-        # self.workingAreaLayout.setSpacing(0)
 
         self.pagesStack = QtWidgets.QStackedWidget()
         self.generalOptionsPage = GeneralOptionsPage(parent=self, jobObject=self._currentJob)
         self.assetManagerPage = AssetManagerPage(parent=self, jobObject=self._currentJob)
         self.productionManagerPage = ProductionManagerPage(parent=self, jobObject=self._currentJob)
         self.dangerZonePage = DangerZonePage(parent=self, jobObject=self._currentJob)
+        self.crewManagerPage = CrewManagerPage(parent=self, jobObject=self._currentJob)
         self.pagesStack.addWidget(self.generalOptionsPage)
         self.pagesStack.addWidget(self.assetManagerPage)
         self.pagesStack.addWidget(self.productionManagerPage)
         self.pagesStack.addWidget(self.dangerZonePage)
+        self.pagesStack.addWidget(self.crewManagerPage)
         self.mainAreaLayout.addLayout(self.workingAreaLayout)
         self.workingAreaLayout.addWidget(self.pagesStack)
         self.workingAreaLayout.addWidget(cqtutil.h_line())
         self.workingAreaLayout.addLayout(self.bottomLayout)
-        # self.mainAreaLayout.addWidget(self.pagesStack)
 
     def page_changed(self):
         current_idx = self.settingsButtonGroup.id(self.settingsButtonGroup.checkedButton())

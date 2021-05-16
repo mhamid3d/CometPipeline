@@ -68,7 +68,7 @@ class PackageDataSource(AbstractDataSource):
         user_object = handler['user'].one(flt)
         if not user_object:
             return []
-        data.append((QtCore.Qt.DisplayRole, user_object.fullName()))
+        data.append((QtCore.Qt.DisplayRole, user_object.fullname()))
 
         userIcon = AvatarLabel(size=20, data=QtCore.QByteArray(user_object.avatar.read()))
 

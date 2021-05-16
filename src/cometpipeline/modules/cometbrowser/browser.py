@@ -41,7 +41,8 @@ class ProjectBrowserMain(BaseMainWindow):
 
     def setCurrentJob(self, jobObject):
         if jobObject:
-            assert self._currentUser.uuid in jobObject.allowed_users, "Insufficient permissions to access this job: {}".format(jobObject.label)
+            crewMembers = [x for x in [v for k, v in jobObject.crew.items()]]
+            assert self._currentUser.uuid in crewMembers, "Insufficient permissions to access this job: {}".format(jobObject.label)
             os.environ['SHOW'] = jobObject.get("label")
 
         self._currentJob = jobObject

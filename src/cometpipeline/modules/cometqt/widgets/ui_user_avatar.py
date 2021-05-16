@@ -28,7 +28,7 @@ class AvatarLabel(QtWidgets.QLabel):
         self.data = data
         if isinstance(self.data, QtCore.QByteArray):
             self.setFromData(self.data)
-        elif isinstance(self.data, str) or isinstance(self.data, unicode):
+        elif isinstance(self.data, str): # TODO or isinstance(self.data, unicode):
             self.setFromPath(self.data)
 
     def setFromData(self, data):

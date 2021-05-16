@@ -133,6 +133,12 @@ class FlowLayout(QtWidgets.QLayout):
     def addItem(self, item):
         self.itemList.append(item)
 
+    def insertWidget(self, index, w):
+        self.addWidget(w)
+        itm = self.itemList[self.indexOf(w)]
+        self.itemList.pop(self.indexOf(w))
+        self.itemList.insert(index, itm)
+
     def count(self):
         return len(self.itemList)
 

@@ -502,9 +502,11 @@ class CreateProjectWindow(QtWidgets.QDialog):
             fullname=initialForm['jobFullTitle'],
             resolution=initialForm['jobResolution'],
             description=initialForm['jobDescription'],
-            admins=[currentUser.uuid],
-            allowed_users=[currentUser.uuid]
         )
+        crew = jobObject.crew_dict()
+        crew['Creator'] = [currentUser.getUuid()]
+        crew['Admins'] = [currentUser.getUuid()]
+        jobObject.crew = crew
         jobObject.save()
         cometpublish.build_job_directory(jobObject)
 

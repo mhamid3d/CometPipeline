@@ -1,5 +1,7 @@
 from mongorm.core.dataobject import DataObject, AbstractDataObject
 from pipeicon import icon_paths
+from cometpipe.core import CREW_TYPES
+from collections import defaultdict
 import mongorm
 import mongoengine
 import re
@@ -14,11 +16,18 @@ class Job(DataObject, mongoengine.Document):
     # Required fields
     fullname = mongoengine.StringField(required=True, dispName="Project Full Name")
     resolution = mongoengine.ListField(required=True, dispName="Resolution")
-    admins = mongoengine.ListField(required=True, dispName="Project Admins")
-    allowed_users = mongoengine.ListField(required=True, dispName="Allowed Users")
+    crew = mongoengine.DictField(required=True, default={k: [] for k in CREW_TYPES})
 
     # Optional fields
     description = mongoengine.StringField(dispName="Description")
+
+    def crew_dict(self):
+        c = self.crew
+        d = {}
+        for k, v in c.items():
+            d[k] = list(v)
+
+        return d
 
     def children(self):
         db = mongorm.getHandler()
@@ -347,7 +356,7 @@ class User(AbstractDataObject, mongoengine.Document):
     def __str__(self):
         return "{} object [{}]".format(self.interfaceName(), self.username)
 
-    def fullName(self):
+    def fullname(self):
         return "{} {}".format(self.first_name, self.last_name)
 
 
