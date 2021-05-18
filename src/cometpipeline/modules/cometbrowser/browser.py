@@ -6,8 +6,14 @@ from cometqt.widgets.ui_base_main_window import BaseMainWindow
 from cometqt import util as pqtutil
 from pipeicon import icon_paths
 from mongorm.core.datacontainer import DataContainer
+import logging
 import mongorm
 import os
+
+
+LOGGER = logging.getLogger("Comet.CometBrowser")
+logging.basicConfig()
+LOGGER.setLevel(logging.INFO)
 
 
 class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
@@ -41,9 +47,15 @@ class ProjectBrowserMain(BaseMainWindow):
 
     def setCurrentJob(self, jobObject):
         if jobObject:
-            crewMembers = [x for x in [v for k, v in jobObject.crew.items()]]
-            assert self._currentUser.uuid in crewMembers, "Insufficient permissions to access this job: {}".format(jobObject.label)
-            os.environ['SHOW'] = jobObject.get("label")
+            crews = [v for k, v in jobObject.crew.items()]
+            crewMembers = set([uid for crewTypeList in crews for uid in crewTypeList])
+            if not self._currentUser.getUuid() in crewMembers:
+                # TODO: need a more global solution for this, this is kind of ridiculous
+                LOGGER.error("Insufficient permissions to access this job: {}".format(jobObject.label))
+                self.setCurrentJob(None)
+                return
+            else:
+                os.environ['SHOW'] = jobObject.get("label")
 
         self._currentJob = jobObject
 
@@ -138,13 +150,14 @@ class ProjectBrowserMain(BaseMainWindow):
             if jobObject:
                 self.setCurrentJob(jobObject)
 
-                current_entity = self.settings.value("project/current_entity")
-                if current_entity:
-                    data = handler['entity'].get(current_entity)
-                    if data:
-                        if not isinstance(data, DataContainer):
-                            data = [data]
-                        self.productionPage.entityViewer.setSelectedEntities(data)
+                if self.currentJob():
+                    current_entity = self.settings.value("project/current_entity")
+                    if current_entity:
+                        data = handler['entity'].get(current_entity)
+                        if data:
+                            if not isinstance(data, DataContainer):
+                                data = [data]
+                            self.productionPage.entityViewer.setSelectedEntities(data)
             else:
                 self.setCurrentJob(None)
 

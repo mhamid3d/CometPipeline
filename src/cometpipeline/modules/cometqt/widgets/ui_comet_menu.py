@@ -116,8 +116,16 @@ class CometMenu(QtWidgets.QMenu):
         if result == mngr.Accepted:
             self.parent().browserMain.productionPage.entityViewer.populate()
 
+        self.parent().setProjectLabel(self.parent().browserMain.currentJob())
+
 
 class CometMenuButton(QtWidgets.QFrame):
+
+    @property
+    def browserMain(self):
+        from cometbrowser.browser import ProjectBrowserMain
+        return cqtutil.get_top_window(self, ProjectBrowserMain)
+
     def __init__(self, parent=None):
         super(CometMenuButton, self).__init__(parent=parent)
         self.mainLayout = QtWidgets.QHBoxLayout()
@@ -180,11 +188,6 @@ class CometMenuButton(QtWidgets.QFrame):
         self.installEventFilter(self)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
-
-    @property
-    def browserMain(self):
-        from cometbrowser.browser import ProjectBrowserMain
-        return cqtutil.get_top_window(self, ProjectBrowserMain)
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:

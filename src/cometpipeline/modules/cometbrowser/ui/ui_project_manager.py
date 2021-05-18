@@ -2,7 +2,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 from cometqt.widgets.ui_entity_viewer import EntityViewer
 from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 from cometqt.widgets.ui_user_avatar import AvatarLabel
-from cometpipe.core import CREW_TYPES
+from cometpipe.core import CREW_TYPES, DEFAULT_ASSET_TYPES
 from cometqt import util as cqtutil
 from mongorm import util as mgutil
 from pipeicon import icon_paths
@@ -196,9 +196,10 @@ class GeneralOptionsPage(QtWidgets.QWidget):
         self.scrollWidget = QtWidgets.QWidget()
         self.scrollArea.setWidget(self.scrollWidget)
         self.formLayout = cqtutil.FormVBoxLayout()
-        # self.scrollLayout = QtWidgets.QVBoxLayout()
-        # self.scrollLayout.setAlignment(QtCore.Qt.AlignTop)
-        self.scrollWidget.setLayout(self.formLayout)
+        self.scrollLayout = QtWidgets.QVBoxLayout()
+        self.scrollLayout.setAlignment(QtCore.Qt.AlignTop)
+        self.scrollWidget.setLayout(self.scrollLayout)
+        self.scrollLayout.addLayout(self.formLayout)
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setStyleSheet("""
             QScrollArea{
@@ -212,13 +213,17 @@ class GeneralOptionsPage(QtWidgets.QWidget):
 
         self.mainLayout.addWidget(self.scrollArea)
 
-
         # Full Title
         self.projectNameLine = QtWidgets.QLineEdit()
+        self.projectNameLine.setText(self._currentJob.fullname)
         self.projectNameLine.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp("[A-Za-z 0-9]{0,100}"), self))
+        self.projectNameLine.setMinimumHeight(32)
 
         # Alias
         self.projectAliasLine = QtWidgets.QLineEdit()
+        self.projectAliasLine.setText(self._currentJob.job)
+        self.projectAliasLine.setReadOnly(True)
+        self.projectAliasLine.setMinimumHeight(32)
 
         # Resolution
         self.resolutionLayout = QtWidgets.QHBoxLayout()
@@ -241,239 +246,116 @@ class GeneralOptionsPage(QtWidgets.QWidget):
         self.resolutionLayout.addWidget(self.yResSpin)
         self.resolutionLayout.addWidget(self.aspectSpin)
         self.resolutionLayout.setContentsMargins(0, 0, 0, 0)
-        spinStyle = """
-            QSpinBox,
-            QDoubleSpinBox{
-                border-radius: 0px;
-                padding: 7px;
-                background: background;
-            }
-        """
-        # self.xResSpin.setStyleSheet(spinStyle)
-        # self.yResSpin.setStyleSheet(spinStyle)
-        # self.aspectSpin.setStyleSheet(spinStyle)
-        self.xResSpin.setFixedHeight(42)
-        self.yResSpin.setFixedHeight(42)
-        self.aspectSpin.setFixedHeight(42)
+        self.xResSpin.setMinimumHeight(32)
+        self.yResSpin.setMinimumHeight(32)
+        self.aspectSpin.setMinimumHeight(32)
+        res = self._currentJob.resolution
+        self.xResSpin.setValue(res[0])
+        self.yResSpin.setValue(res[1])
+        self.aspectSpin.setValue(res[2])
 
         # Full Title
         self.projectDescription = QtWidgets.QLineEdit()
+        self.projectDescription.setText(self._currentJob.description)
+        self.projectDescription.setMinimumHeight(32)
 
-        self.colorSpaceFrame = QtWidgets.QFrame()
-        self.colorSpaceLayout = QtWidgets.QHBoxLayout()
-        self.colorSpaceLayout.setContentsMargins(0, 0, 0, 0)
-        self.colorSpaceFrame.setLayout(self.colorSpaceLayout)
-        self.colorSpaceLine = QtWidgets.QLineEdit("")
-        self.colorSpaceLine.setReadOnly(True)
-        self.colorSpaceBrowse = QtWidgets.QPushButton("Browse")
-        self.colorSpaceBrowse.setFixedHeight(42)
-        self.colorSpaceLayout.addWidget(self.colorSpaceLine)
-        self.colorSpaceLayout.addWidget(self.colorSpaceBrowse)
-        self.colorSpaceBrowse.setStyleSheet("""
-            QPushButton{
-                color: #6e6e6e;
-                background: none;
-                border: 1px solid #6e6e6e;
-                border-radius: 0px;
-                font: bold 14px;
-            }
-            QPushButton:hover{
-                color: #9e9e9e;
-                border: 1px solid #9e9e9e;
-            }
-            QPushButton:pressed{
-                background: #3e3e3e;
-            }
-        """)
-        self.colorSpaceBrowse.setCursor(QtCore.Qt.PointingHandCursor)
-        self.colorSpaceFrame.setStyleSheet("""
-            QFrame{
-                border: none;
-                background: none;
-            }
-        """)
-        self.colorSpaceFileDialog = QtWidgets.QFileDialog()
-        # self.colorSpaceBrowse.clicked.connect(self.colorspace_browse)
+        # self.colorSpaceFrame = QtWidgets.QFrame()
+        # self.colorSpaceLayout = QtWidgets.QHBoxLayout()
+        # self.colorSpaceLayout.setContentsMargins(0, 0, 0, 0)
+        # self.colorSpaceFrame.setLayout(self.colorSpaceLayout)
+        # self.colorSpaceLine = QtWidgets.QLineEdit("")
+        # self.colorSpaceLine.setReadOnly(True)
+        # self.colorSpaceBrowse = QtWidgets.QPushButton("Browse")
+        # self.colorSpaceBrowse.setFixedHeight(42)
+        # self.colorSpaceLayout.addWidget(self.colorSpaceLine)
+        # self.colorSpaceLayout.addWidget(self.colorSpaceBrowse)
+        # self.colorSpaceBrowse.setStyleSheet("""
+        #     QPushButton{
+        #         color: #6e6e6e;
+        #         background: none;
+        #         border: 1px solid #6e6e6e;
+        #         border-radius: 0px;
+        #         font: bold 14px;
+        #     }
+        #     QPushButton:hover{
+        #         color: #9e9e9e;
+        #         border: 1px solid #9e9e9e;
+        #     }
+        #     QPushButton:pressed{
+        #         background: #3e3e3e;
+        #     }
+        # """)
+        # self.colorSpaceBrowse.setCursor(QtCore.Qt.PointingHandCursor)
+        # self.colorSpaceFrame.setStyleSheet("""
+        #     QFrame{
+        #         border: none;
+        #         background: none;
+        #     }
+        # """)
+        # self.colorSpaceFileDialog = QtWidgets.QFileDialog()
+        # # self.colorSpaceBrowse.clicked.connect(self.colorspace_browse)
 
-        self.formLayout.addRow("FULL TITLE", self.projectNameLine)
-        self.formLayout.addRow("ALIAS", self.projectAliasLine, tip="Project code that will be used for all of production. Must be 3 characters long.")
-        self.formLayout.addRow("RESOLUTION", self.resolutionLayout, tip="(X), (Y), (ASPECT RATIO)")
-        self.formLayout.addRow("DESCRIPTION", self.projectDescription)
-        self.formLayout.addRow("OCIO CONFIG", self.colorSpaceFrame, tip="The config will be copied and published to the job")
+        self.formLayout.addRow("Title", self.projectNameLine)
+        self.formLayout.addRow("Alias", self.projectAliasLine, tip="Project code that will be used for all of production. Must be 3 characters long.")
+        self.formLayout.addRow("Resolution", self.resolutionLayout, tip="(X), (Y), (ASPECT RATIO)")
+        self.formLayout.addRow("Description", self.projectDescription)
+        # self.formLayout.addRow("OCIO CONFIG", self.colorSpaceFrame, tip="The config will be copied and published to the job")
+
+        self.projectNameLine.editingFinished.connect(self.updateGeneral)
+        self.projectDescription.editingFinished.connect(self.updateGeneral)
+        self.xResSpin.editingFinished.connect(self.updateGeneral)
+        self.yResSpin.editingFinished.connect(self.updateGeneral)
+        self.aspectSpin.editingFinished.connect(self.updateGeneral)
+
+    def updateGeneral(self):
+        fullname = self.projectNameLine.text()
+        description = self.projectDescription.text()
+        res = [self.xResSpin.value(), self.yResSpin.value(), self.aspectSpin.value()]
+        self._currentJob.fullname = fullname
+        self._currentJob.description = description
+        self._currentJob.resolution = res
+        self._currentJob.save()
 
 
-class AssetManagerPage(QtWidgets.QWidget):
+class EntityManagerPage(QtWidgets.QWidget):
     def __init__(self, parent=None, jobObject=None):
-        super(AssetManagerPage, self).__init__(parent=parent)
-        self._currentJob = jobObject
-        self.mainLayout = QtWidgets.QHBoxLayout()
-        self.setLayout(self.mainLayout)
-        self.editorLayout = QtWidgets.QVBoxLayout()
-        self.settingsLayout = cqtutil.FormVBoxLayout()
-        self.addRemoveLayout = QtWidgets.QHBoxLayout()
-        self.editorLayout.setAlignment(QtCore.Qt.AlignTop)
-        self.settingsLayout.setContentsMargins(0, 0, 0, 0)
-
-        self.nameLineEdit = QtWidgets.QLineEdit()
-        self.productionCheckBox = QtWidgets.QCheckBox()
-        self.addButton = QtWidgets.QPushButton("ADD TO SELECTION")
-        self.removeButton = QtWidgets.QPushButton("REMOVE SELECTION")
-
-        self.nameLineEdit.setMinimumHeight(32)
-        self.removeButton.setStyleSheet("""
-            QPushButton{
-                background: #bf2626;
-                border: none;
-            }
-            QPushButton:hover{
-                border: 1px solid #c9c9c9;
-            }
-        """)
-
-        self.settingsLayout.addRow("ASSET NAME", self.nameLineEdit)
-        self.settingsLayout.addRow("RND / TEST ASSET", self.productionCheckBox)
-
-        self.addRemoveLayout.addWidget(self.addButton)
-        self.addRemoveLayout.addWidget(self.removeButton)
-
-        self.entityViewer = EntityViewer()
-        self.entityViewer.setCurrentJob(self._currentJob)
-        self.entityViewer.topLabel.hide()
-        self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
-
-        self.mainLayout.addLayout(self.editorLayout)
-        self.editorLayout.addLayout(self.settingsLayout)
-        self.editorLayout.addWidget(cqtutil.h_line())
-        self.editorLayout.addLayout(self.addRemoveLayout)
-        self.mainLayout.addWidget(self.entityViewer)
-
-        self.addButton.clicked.connect(self.add_asset)
-        self.removeButton.clicked.connect(self.remove_asset)
-
-    def add_asset(self):
-        assetSelection = self.entityViewer.entityTree.selectedItems()
-        if assetSelection:
-            assetSelection = assetSelection[0]
-        assetName = self.nameLineEdit.text()
-        production = not self.productionCheckBox.isChecked()
-
-        if not assetSelection or not assetName:
-
-            errMsg = "Unknown error"
-
-            if not assetSelection:
-                errMsg = "Please make a selection in the tree"
-            elif not assetName:
-                errMsg = "Asset name field required"
-            try:
-                self.emptyNameError.deleteLater()
-            except:
-                pass
-            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
-                                      parent=self.parent(), width=self.parent().width())
-            self.emptyNameError.do_anim()
-            return False
-
-        handler = mongorm.getHandler()
-        filt = mongorm.getFilter()
-        filt.search(handler['entity'], label=assetName, parent_uuid=assetSelection.dataObject.getUuid(), job=self._currentJob.job)
-        existingObject = handler['entity'].one(filt)
-
-        filt.clear()
-
-        if existingObject:
-
-            errMsg = "Asset with name '{}' and parent '{}' already exists".format(assetName,
-                                                                                  assetSelection.dataObject.get("label"))
-            try:
-                self.emptyNameError.deleteLater()
-            except:
-                pass
-            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
-                                      parent=self.parent(), width=self.parent().width())
-            self.emptyNameError.do_anim()
-            return False
-
-        # Database publish
-
-        entityObject = handler['entity'].create(
-            label=assetName,
-            job=self._currentJob.label,
-            type='asset',
-            created_by=mgutil.getCurrentUser().getUuid(),
-        )
-        entityObject.save()
-        cometpublish.build_entity_directory(entityObject)
-
-        self.entityViewer.populate()
-
-    def remove_asset(self):
-        assetSelection = self.entityViewer.entityTree.selectedItems()
-        entityIsJob = True
-        if assetSelection:
-            assetSelection = assetSelection[0]
-            entityIsJob = assetSelection.dataObject.get("type") == "job"
-
-        if not assetSelection or entityIsJob:
-            errMsg = "Unknown error"
-
-            if not assetSelection:
-                errMsg = "Please make a selection in the tree"
-            elif entityIsJob:
-                errMsg = "Cannot delete job level entity!"
-            try:
-                self.emptyNameError.deleteLater()
-            except:
-                pass
-            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
-                                                       parent=self.parent(), width=self.parent().width())
-            self.emptyNameError.do_anim()
-            return False
-
-        confirmResult = remove_confirm_dialog(assetSelection.dataObject).exec_()
-
-        if confirmResult == QtWidgets.QMessageBox.Apply and cqtutil.doLoginConfirm():
-            recursiveChildren = assetSelection.dataObject.recursive_children()
-            recursiveChildren.append_object(assetSelection.dataObject)
-            recursiveChildren.sort(sort_field='jobpath')
-            prunePaths = []
-            for obj in recursiveChildren:
-                prunePaths.append(obj.get("path"))
-                LOGGER.info("Removing database entry: {}".format(obj))
-                obj.delete()
-
-            for path in prunePaths:
-                if os.path.exists(path):
-                    LOGGER.info("Deleting path: {}".format(path))
-                    shutil.rmtree(path)
-
-        self.entityViewer.populate()
-
-
-class ProductionManagerPage(QtWidgets.QWidget):
-    def __init__(self, parent=None, jobObject=None):
-        super(ProductionManagerPage, self).__init__(parent=parent)
+        super(EntityManagerPage, self).__init__(parent=parent)
         self._currentJob = jobObject
         self.mainLayout = QtWidgets.QHBoxLayout()
         self.setLayout(self.mainLayout)
 
-        self.editorLayout = QtWidgets.QVBoxLayout()
         self.treeLayout = QtWidgets.QVBoxLayout()
-        self.editorLayout.setAlignment(QtCore.Qt.AlignTop)
 
         self.entityViewer = EntityViewer()
         self.entityViewer.setCurrentJob(self._currentJob)
         self.entityViewer.topLabel.hide()
         self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
 
-        self.mainLayout.addLayout(self.editorLayout)
-        self.mainLayout.addLayout(self.treeLayout)
+        self.sequenceWidget = QtWidgets.QWidget()
+        self.assetWidget = QtWidgets.QWidget()
+        self.utilWidget = QtWidgets.QWidget()
+        self.sequenceLayout = QtWidgets.QVBoxLayout()
+        self.assetLayout = QtWidgets.QVBoxLayout()
+        self.utilLayout = QtWidgets.QVBoxLayout()
+        self.sequenceWidget.setLayout(self.sequenceLayout)
+        self.assetWidget.setLayout(self.assetLayout)
+        self.utilWidget.setLayout(self.utilLayout)
 
-        self.setup_seq_group()
-        self.setup_shot_group()
-        self.treeLayout.addWidget(self.entityViewer)
+        for layout in [self.sequenceLayout, self.assetLayout, self.utilLayout]:
+            layout.setAlignment(QtCore.Qt.AlignTop)
 
-        self.removeSelectionButton = QtWidgets.QPushButton("REMOVE SELECTION")
+        self.tabWidget = QtWidgets.QTabWidget()
+        self.tabWidget.setStyleSheet("""
+            QTabWidget:pane{
+                border-radius: 0px;
+            }
+        """)
+
+        self.tabWidget.addTab(self.sequenceWidget, "Sequence")
+        self.tabWidget.addTab(self.assetWidget, "Asset")
+        self.tabWidget.addTab(self.utilWidget, "Util")
+
+        self.removeSelectionButton = QtWidgets.QPushButton("REMOVE SELECTED ENTITY")
         self.removeSelectionButton.setStyleSheet("""
                     QPushButton{
                         background: #bf2626;
@@ -483,22 +365,27 @@ class ProductionManagerPage(QtWidgets.QWidget):
                         border: 1px solid #c9c9c9;
                     }
                 """)
+
+        self.mainLayout.addWidget(self.tabWidget)
+        self.mainLayout.addLayout(self.treeLayout)
+        self.treeLayout.addWidget(self.entityViewer)
         self.treeLayout.addWidget(cqtutil.h_line())
         self.treeLayout.addWidget(self.removeSelectionButton)
 
+        self.setup_seq_grp()
+        self.setup_asset_grp()
+
         self.removeSelectionButton.clicked.connect(self.remove_selection)
 
-    def setup_seq_group(self):
-        self.sequenceGroupBox = QtWidgets.QGroupBox("Sequence")
-        self.sequenceGroupLayout = QtWidgets.QVBoxLayout()
-        self.sequenceGroupBox.setLayout(self.sequenceGroupLayout)
+    def setup_seq_grp(self):
         self.seqSettingsLayout = cqtutil.FormVBoxLayout()
-        self.seqAddRemoveLayout = QtWidgets.QHBoxLayout()
-        self.sequenceGroupLayout.addLayout(self.seqSettingsLayout)
-        self.sequenceGroupLayout.addWidget(cqtutil.h_line())
+        self.sequenceLayout.addLayout(self.seqSettingsLayout)
+        self.sequenceLayout.addWidget(cqtutil.h_line())
 
         self.seqNameLineEdit = QtWidgets.QLineEdit()
-        self.seqProductionCheck = QtWidgets.QCheckBox()
+        exp = QtCore.QRegExp("[A-Za-z]{0,3}")
+        validator = QtGui.QRegExpValidator(exp, self)
+        self.seqNameLineEdit.setValidator(validator)
 
         self.incrShotsLayout = QtWidgets.QHBoxLayout()
         self.beginRangeSpin = QtWidgets.QSpinBox()
@@ -507,83 +394,132 @@ class ProductionManagerPage(QtWidgets.QWidget):
         for spin in [self.beginRangeSpin, self.endRangeSpin, self.incrementSpin]:
             spin.setRange(0, 999999)
             spin.setValue(0)
+            spin.valueChanged.connect(self.updateShotList)
         self.incrShotsLayout.addWidget(self.beginRangeSpin)
         self.incrShotsLayout.addWidget(self.endRangeSpin)
         self.incrShotsLayout.addWidget(self.incrementSpin)
         self.incrShotsLayout.setContentsMargins(0, 0, 0, 0)
 
-        self.paddingCheckBox = QtWidgets.QCheckBox()
-        self.paddingCheckBox.setChecked(True)
-        self.underScoreCheck = QtWidgets.QCheckBox()
-        self.seqAddButton = QtWidgets.QPushButton("ADD SEQUENCE")
+        self.seqAddButton = QtWidgets.QPushButton("ADD ENTITIES")
 
         self.seqNameLineEdit.setMinimumHeight(32)
 
         self.seqSettingsLayout.setContentsMargins(0, 0, 0, 0)
 
+        self.sequenceLabel = QtWidgets.QPushButton("_seq")
+        self.sequenceLabel.setIcon(QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
+        self.sequenceLabel.setFlat(True)
+        self.sequenceLabel.setStyleSheet("""
+            QPushButton{
+                background: #3e3e3e;
+                border: none;
+                color: #a6a6a6;
+                text-align: left;
+            }
+        """)
+
+        self.shotListWidget = QtWidgets.QListWidget()
+        self.shotListWidget.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+
         self.seqSettingsLayout.addRow("SEQUENCE NAME", self.seqNameLineEdit)
-        self.seqSettingsLayout.addRow("RND / TEST SEQUENCE", self.seqProductionCheck)
-        self.seqSettingsLayout.addRow("SHOT NUMBER PADDING", self.paddingCheckBox, tip="ABC0010")
-        self.seqSettingsLayout.addRow("INCLUDE UNDERSCORE IN SHOT", self.underScoreCheck, tip="ABC_0010")
         self.seqSettingsLayout.addRow("SHOTS", self.incrShotsLayout, tip="Begin, End, Increment")
+        self.seqSettingsLayout.addRow("", None)
+        self.seqSettingsLayout.addRow("RESULTING SEQUENCE", self.sequenceLabel)
+        self.seqSettingsLayout.addRow("RESULTING SHOTS", self.shotListWidget)
 
-        self.sequenceGroupLayout.addWidget(self.seqAddButton)
+        self.sequenceLayout.addWidget(self.seqAddButton, alignment=QtCore.Qt.AlignBottom)
 
-        self.editorLayout.addWidget(self.sequenceGroupBox)
-
+        self.seqNameLineEdit.textChanged.connect(
+            lambda: self.sequenceLabel.setText("{}_seq".format(self.seqNameLineEdit.text()))
+        )
+        self.seqNameLineEdit.textChanged.connect(self.updateShotList)
+        self.seqNameLineEdit.textEdited.connect(lambda: self.seqNameLineEdit.setText(self.seqNameLineEdit.text().lower()))
         self.seqAddButton.clicked.connect(self.add_sequence)
 
-    def setup_shot_group(self):
-        self.shotGroupBox = QtWidgets.QGroupBox("Shot")
-        self.shotGroupLayout = QtWidgets.QVBoxLayout()
-        self.shotGroupBox.setLayout(self.shotGroupLayout)
-        self.shotSettingsLayout = cqtutil.FormVBoxLayout()
-        self.shotAddRemoveLayout = QtWidgets.QHBoxLayout()
-        self.shotGroupLayout.addLayout(self.shotSettingsLayout)
-        self.shotGroupLayout.addWidget(cqtutil.h_line())
+    def setup_asset_grp(self):
+        self._childAssetCache = []
+        self.assetSettingsLayout = cqtutil.FormVBoxLayout()
+        self.assetLayout.addLayout(self.assetSettingsLayout)
+        self.assetLayout.addWidget(cqtutil.h_line())
+        self.assetNameLayout = QtWidgets.QHBoxLayout()
 
-        self.shotNumberLineEdit = QtWidgets.QLineEdit()
-        self.shotProductionCheck = QtWidgets.QCheckBox()
-        self.shotUnderscoreInclude = QtWidgets.QCheckBox()
+        self.assetNameLineEdit = QtWidgets.QLineEdit()
+        # exp = QtCore.QRegExp(r"^(?!.*__.*)[\w*]+$")
+        exp = QtCore.QRegExp(r"[a-z*]+[A-Z]+[\w*]+$")
+        validator = QtGui.QRegExpValidator(exp, self)
+        self.assetNameLineEdit.setValidator(validator)
 
-        self.frameRangeLayout = QtWidgets.QHBoxLayout()
-        self.frameRangeLayout.setContentsMargins(0, 0, 0, 0)
-        self.frBegin = QtWidgets.QSpinBox()
-        self.frEnd = QtWidgets.QSpinBox()
-        for spin in [self.frBegin, self.frEnd]:
-            spin.setRange(0, 999999)
-            spin.setValue(0)
-            self.frameRangeLayout.addWidget(spin)
+        self.childAssetLayout = QtWidgets.QHBoxLayout()
+        self.childAssetNameLine = QtWidgets.QLineEdit()
+        self.childAssetNameLine.setValidator(validator)
+        self.addChildAssetButton = QtWidgets.QPushButton("Add")
+        self.childAssetLayout.addWidget(self.childAssetNameLine)
+        self.childAssetLayout.addWidget(self.addChildAssetButton)
 
-        self.shotAddButton = QtWidgets.QPushButton("ADD SHOT")
+        self.assetPrefixCombo = QtWidgets.QComboBox()
+        self.assetPrefixCombo.setEditable(True)
+        self.assetPrefixCombo.addItems(DEFAULT_ASSET_TYPES)
+        self.assetNameLayout.addWidget(self.assetPrefixCombo)
+        self.assetNameLayout.addWidget(self.assetNameLineEdit)
 
-        self.shotNumberLineEdit.setMinimumHeight(32)
-        self.shotSettingsLayout.setContentsMargins(0, 0, 0, 0)
+        self.assetAddButton = QtWidgets.QPushButton("ADD ENTITIES")
 
-        self.shotSettingsLayout.addRow("SHOT NUMBER", self.shotNumberLineEdit)
-        self.shotSettingsLayout.addRow("RND / TEST SHOT", self.shotProductionCheck)
-        self.shotSettingsLayout.addRow("INCLUDE UNDERSCORE IN SHOT", self.shotUnderscoreInclude, tip="ABC_0010")
-        self.shotSettingsLayout.addRow("FRAME RANGE", self.frameRangeLayout, tip="Begin, End")
+        self.assetNameLineEdit.setMinimumHeight(32)
+        self.childAssetNameLine.setMinimumHeight(32)
+        self.addChildAssetButton.setMinimumHeight(32)
 
-        self.shotGroupLayout.addWidget(self.shotAddButton)
+        self.assetSettingsLayout.setContentsMargins(0, 0, 0, 0)
 
-        self.editorLayout.addWidget(self.shotGroupBox)
+        self.assetLabel = QtWidgets.QPushButton("")
+        self.assetLabel.setIcon(QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
+        self.assetLabel.setFlat(True)
+        self.assetLabel.setStyleSheet("""
+            QPushButton{
+                background: #3e3e3e;
+                border: none;
+                color: #a6a6a6;
+                text-align: left;
+            }
+        """)
 
-        self.shotAddButton.clicked.connect(self.add_shot)
+        self.assetListWidget = QtWidgets.QListWidget()
+        self.assetListWidget.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+
+        self.assetSettingsLayout.addRow("SEQUENCE NAME", self.assetNameLayout)
+        self.assetSettingsLayout.addRow("CHILD ASSET NAME", self.childAssetLayout)
+        self.assetSettingsLayout.addRow("", None)
+        self.assetSettingsLayout.addRow("RESULTING ASSET", self.assetLabel)
+        self.assetSettingsLayout.addRow("RESULTING CHILD ASSETS", self.assetListWidget)
+
+        self.assetLayout.addWidget(self.assetAddButton, alignment=QtCore.Qt.AlignBottom)
+
+        self.assetNameLineEdit.textChanged.connect(
+            lambda: self.assetLabel.setText("{}_{}".format(self.assetPrefixCombo.currentText(), self.assetNameLineEdit.text()))
+        )
+        self.assetPrefixCombo.currentTextChanged.connect(
+            lambda: self.assetLabel.setText("{}_{}".format(self.assetPrefixCombo.currentText(), self.assetNameLineEdit.text()))
+        )
+        self.assetNameLineEdit.textChanged.connect(self.updateAssetList)
+        self.assetPrefixCombo.currentTextChanged.connect(self.updateAssetList)
+        self.addChildAssetButton.clicked.connect(lambda: self._childAssetCache.append(
+            (self.childAssetNameLine.text(), True)) if (self.childAssetNameLine.text() and self.childAssetNameLine.text() not in [x for x, y in self._childAssetCache]) else None)
+        self.addChildAssetButton.clicked.connect(self.updateAssetList)
+        self.assetAddButton.clicked.connect(self.add_asset)
+        self.assetListWidget.itemChanged.connect(self.updateAssetCache)
 
     def add_sequence(self):
         seqName = self.seqNameLineEdit.text()
-        production = not self.seqProductionCheck.isChecked()
-        padding = self.paddingCheckBox.isChecked()
-        underscore = self.underScoreCheck.isChecked()
-        shot_range = [self.beginRangeSpin.value(), self.endRangeSpin.value(), self.incrementSpin.value()]
 
-        if not seqName:
+        if not seqName or not len(seqName) == 3 or seqName == self._currentJob.job:
 
             errMsg = "Unknown error"
 
             if not seqName:
                 errMsg = "Sequence name is required"
+            elif not len(seqName) == 3:
+                errMsg = "Sequence name must be 3 characters"
+            elif seqName == self._currentJob.job:
+                errMsg = "Sequence name cannot be same as job name"
             try:
                 self.emptyNameError.deleteLater()
             except:
@@ -594,13 +530,9 @@ class ProductionManagerPage(QtWidgets.QWidget):
             return False
 
         handler = mongorm.getHandler()
-
         filt = mongorm.getFilter()
-        filt.search(handler['entity'], type='job', label=self._currentJob.job, job=self._currentJob.job)
-        jobEntityObject = handler['entity'].one(filt)
-        filt.clear()
 
-        filt.search(handler['entity'], type='sequence', label="{}_seq".format(seqName), job=self._currentJob.job)
+        filt.search(handler['entity'], type='sequence', label=self.sequenceLabel.text(), job=self._currentJob.job)
         sequenceObject = handler['entity'].one(filt)
         filt.clear()
 
@@ -610,7 +542,7 @@ class ProductionManagerPage(QtWidgets.QWidget):
 
         # If the sequence does not already exist, create it
         if not sequenceObject:
-            seqLabel = "{}_seq".format(seqName)
+            seqLabel = self.sequenceLabel.text()
             sequenceObject = handler['entity'].create(
                 label=seqLabel,
                 job=self._currentJob.job,
@@ -622,74 +554,42 @@ class ProductionManagerPage(QtWidgets.QWidget):
             cometpublish.build_entity_directory(sequenceObject)
 
         # Create Shots
-        if shot_range[2]:
-            for i in range(shot_range[0], shot_range[1] + 1, shot_range[2]):
-                shotNum = str(i).zfill(4) if padding else str(i)
-                shotName = "{0}{1}{2}".format(seqName, "_" if underscore else "", shotNum)
+        for s in range(self.shotListWidget.count()):
+            shotItem = self.shotListWidget.item(s)
+            if not shotItem.checkState() == QtCore.Qt.Checked:
+                continue
 
-                filt.search(handler['entity'], type='shot', label=shotName, job=self._currentJob.job)
-                shotObject = handler['entity'].one(filt)
-                filt.clear()
+            shotName = shotItem.text()
 
-                if not shotObject:
-                    shotObject = handler['entity'].create(
-                        label=shotName,
-                        job=self._currentJob.job,
-                        type='shot',
-                        parent_uuid=sequenceObject.getUuid(),
-                        created_by=mgutil.getCurrentUser().getUuid(),
-                    )
-                    shotObject.save()
-                    cometpublish.build_entity_directory(shotObject)
+            filt.search(handler['entity'], type='shot', label=shotName, job=self._currentJob.job, parent_uuid=sequenceObject.getUuid())
+            shotObject = handler['entity'].one(filt)
+            filt.clear()
+
+            if not shotObject:
+                shotObject = handler['entity'].create(
+                    label=shotName,
+                    job=self._currentJob.job,
+                    type='shot',
+                    parent_uuid=sequenceObject.getUuid(),
+                    created_by=mgutil.getCurrentUser().getUuid(),
+                )
+                shotObject.save()
+                cometpublish.build_entity_directory(shotObject)
 
         self.entityViewer.populate()
 
-    def add_shot(self):
-        shotNum = self.shotNumberLineEdit.text()
-        production = not self.shotProductionCheck.isChecked()
-        underscore = self.shotUnderscoreInclude.isChecked()
-        frameRange = [self.frBegin.value(), self.frEnd.value()]
-        selectedItem = self.entityViewer.entityTree.selectedItems()
-        if selectedItem:
-            selectedItem = selectedItem[0]
-            if not selectedItem.dataObject.get("type") == "sequence":
-                selectedItem = None
+    def add_asset(self):
+        assetName = self.assetNameLineEdit.text()
+        prefixCombo = self.assetPrefixCombo.currentText()
 
-        if not shotNum or frameRange[0] > frameRange[1] or not selectedItem:
+        if not assetName or not prefixCombo:
+
             errMsg = "Unknown error"
 
-            if not shotNum:
-                errMsg = "Shot number is required"
-            elif frameRange[0] > frameRange[1]:
-                errMsg = "Frame range end must be greater than frame range beginning"
-            elif not selectedItem:
-                errMsg = "Please select a valid sequence"
-
-            try:
-                self.emptyNameError.deleteLater()
-            except:
-                pass
-            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
-                                      parent=self.parent(), width=self.parent().width())
-            self.emptyNameError.do_anim()
-            return False
-
-        shotName = "{0}{1}{2}".format(
-            selectedItem.dataObject.get("label").replace("_seq", ""),
-            "_" if underscore else "",
-            shotNum
-        )
-
-        handler = mongorm.getHandler()
-        filt = mongorm.getFilter()
-
-        filt.search(handler['entity'], label=shotName, job=self._currentJob.job, parent_uuid=selectedItem.dataObject.getUuid())
-        shotObject = handler['entity'].one(filt)
-        filt.clear()
-
-        if shotObject:
-            errMsg = "Shot with name {}, already exists".format(shotName)
-
+            if not assetName:
+                errMsg = "Asset name is required"
+            elif not prefixCombo:
+                errMsg = "Asset prefix is required"
             try:
                 self.emptyNameError.deleteLater()
             except:
@@ -699,18 +599,98 @@ class ProductionManagerPage(QtWidgets.QWidget):
             self.emptyNameError.do_anim()
             return False
 
-        shotObject = handler['entity'].create(
-            label=shotName,
-            job=self._currentJob.job,
-            type='shot',
-            parent_uuid=selectedItem.dataObject.getUuid(),
-            created_by=mgutil.getCurrentUser().getUuid(),
-            framerange=frameRange,
-        )
-        shotObject.save()
-        cometpublish.build_entity_directory(shotObject)
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+
+        filt.search(handler['entity'], type='asset', label=self.assetLabel.text(), job=self._currentJob.job)
+        assetObject = handler['entity'].one(filt)
+        filt.clear()
+
+        filt.search(handler['entity'], type='util', label='root', job=self._currentJob.job)
+        rootEntityObject = handler['entity'].one(filt)
+        filt.clear()
+
+        # If the sequence does not already exist, create it
+        if not assetObject:
+            assetLabel = self.assetLabel.text()
+            assetObject = handler['entity'].create(
+                label=assetLabel,
+                job=self._currentJob.job,
+                type='asset',
+                created_by=mgutil.getCurrentUser().getUuid(),
+                parent_uuid=rootEntityObject.getUuid()
+            )
+            assetObject.save()
+            cometpublish.build_entity_directory(assetObject)
+
+        # Create Child Assets
+        for c in range(self.assetListWidget.count()):
+            childAssetItem = self.assetListWidget.item(c)
+            if not childAssetItem.checkState() == QtCore.Qt.Checked:
+                continue
+
+            childAssetName = childAssetItem.text()
+
+            filt.search(handler['entity'], type='asset', label=childAssetName, job=self._currentJob.job,
+                        parent_uuid=assetObject.getUuid())
+            childAssetObject = handler['entity'].one(filt)
+            filt.clear()
+
+            if not childAssetObject:
+                childAssetObject = handler['entity'].create(
+                    label=childAssetName,
+                    job=self._currentJob.job,
+                    type='asset',
+                    parent_uuid=assetObject.getUuid(),
+                    created_by=mgutil.getCurrentUser().getUuid(),
+                )
+                childAssetObject.save()
+                cometpublish.build_entity_directory(childAssetObject)
 
         self.entityViewer.populate()
+
+    def updateShotList(self):
+        self.shotListWidget.clear()
+        if not self.seqNameLineEdit.text() or not len(self.seqNameLineEdit.text()) == 3:
+            return
+        shot_range = [self.beginRangeSpin.value(), self.endRangeSpin.value(), self.incrementSpin.value()]
+        if all(shot_range):
+            for i in range(shot_range[0], shot_range[1] + 1, shot_range[2]):
+                shotNum = str(i).zfill(3)
+                shotName = "{}{}".format(self.sequenceLabel.text().replace("_seq", ""), shotNum)
+                item = QtWidgets.QListWidgetItem()
+                item.setText(shotName)
+                item.setIcon(QtGui.QIcon(icon_paths.ICON_SHOT_LRG))
+                item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+                item.setCheckState(QtCore.Qt.Checked)
+                self.shotListWidget.addItem(item)
+
+    def updateAssetList(self):
+
+        self.assetListWidget.clear()
+
+        if not self.assetNameLineEdit.text() or not self.assetPrefixCombo.currentText():
+            return
+
+        parentAssetName = self.assetLabel.text()
+
+        for childAssetName, checked in self._childAssetCache:
+            assetName = "{}_{}".format(parentAssetName, childAssetName)
+            if not assetName in [self.assetListWidget.item(x).text() for x in range(self.assetListWidget.count())]:
+                item = QtWidgets.QListWidgetItem()
+                item.setText("{}_{}".format(parentAssetName, childAssetName))
+                item.setIcon(QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
+                item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+                item.setCheckState(QtCore.Qt.Checked if checked else QtCore.Qt.Unchecked)
+                self.assetListWidget.addItem(item)
+
+    def updateAssetCache(self):
+        self._childAssetCache = []
+
+        for c in range(self.assetListWidget.count()):
+            item = self.assetListWidget.item(c)
+            assetName = item.text().split("_")[-1]
+            self._childAssetCache.append((assetName, True if item.checkState() == QtCore.Qt.Checked else False))
 
     def remove_selection(self):
 
@@ -986,14 +966,14 @@ class ProjectManager(QtWidgets.QDialog):
         self.scrollWidget = QtWidgets.QWidget()
         self.scrollArea.setWidget(self.scrollWidget)
         self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setMaximumWidth(300)
         self.settingsLayout = QtWidgets.QVBoxLayout()
         self.scrollWidget.setLayout(self.settingsLayout)
         self.settingsLayout.setAlignment(QtCore.Qt.AlignTop)
 
         self.settingsButtonGroup = QtWidgets.QButtonGroup()
         self.generalOptionsButton = QtWidgets.QPushButton("General Options")
-        self.assetManagerButton = QtWidgets.QPushButton("Asset Manager")
-        self.productionManagerButton = QtWidgets.QPushButton("Production Manager")
+        self.entityManagerButton = QtWidgets.QPushButton("Entity Manager")
         self.dangerZoneButton = QtWidgets.QPushButton("Danger Zone")
 
         self.crewManagerButton = QtWidgets.QPushButton("Crew Manager")
@@ -1005,10 +985,9 @@ class ProjectManager(QtWidgets.QDialog):
         self.closeButton.clicked.connect(self.accept)
 
         self.settingsButtonGroup.addButton(self.generalOptionsButton, id=0)
-        self.settingsButtonGroup.addButton(self.assetManagerButton, id=1)
-        self.settingsButtonGroup.addButton(self.productionManagerButton, id=2)
-        self.settingsButtonGroup.addButton(self.dangerZoneButton, id=3)
-        self.settingsButtonGroup.addButton(self.crewManagerButton, id=4)
+        self.settingsButtonGroup.addButton(self.entityManagerButton, id=1)
+        self.settingsButtonGroup.addButton(self.dangerZoneButton, id=2)
+        self.settingsButtonGroup.addButton(self.crewManagerButton, id=3)
 
         self.mainAreaLayout = QtWidgets.QHBoxLayout()
         self.bottomLayout = QtWidgets.QHBoxLayout()
@@ -1017,8 +996,7 @@ class ProjectManager(QtWidgets.QDialog):
         self.mainLayout.addLayout(self.mainAreaLayout)
         self.mainAreaLayout.addWidget(self.scrollArea)
         self.settingsLayout.addWidget(self.generalOptionsButton)
-        self.settingsLayout.addWidget(self.assetManagerButton)
-        self.settingsLayout.addWidget(self.productionManagerButton)
+        self.settingsLayout.addWidget(self.entityManagerButton)
         self.settingsLayout.addWidget(self.dangerZoneButton)
         self.settingsLayout.addWidget(cqtutil.h_line())
         self.settingsLayout.addWidget(self.crewManagerButton)
@@ -1069,13 +1047,11 @@ class ProjectManager(QtWidgets.QDialog):
 
         self.pagesStack = QtWidgets.QStackedWidget()
         self.generalOptionsPage = GeneralOptionsPage(parent=self, jobObject=self._currentJob)
-        self.assetManagerPage = AssetManagerPage(parent=self, jobObject=self._currentJob)
-        self.productionManagerPage = ProductionManagerPage(parent=self, jobObject=self._currentJob)
+        self.entityManagerPage = EntityManagerPage(parent=self, jobObject=self._currentJob)
         self.dangerZonePage = DangerZonePage(parent=self, jobObject=self._currentJob)
         self.crewManagerPage = CrewManagerPage(parent=self, jobObject=self._currentJob)
         self.pagesStack.addWidget(self.generalOptionsPage)
-        self.pagesStack.addWidget(self.assetManagerPage)
-        self.pagesStack.addWidget(self.productionManagerPage)
+        self.pagesStack.addWidget(self.entityManagerPage)
         self.pagesStack.addWidget(self.dangerZonePage)
         self.pagesStack.addWidget(self.crewManagerPage)
         self.mainAreaLayout.addLayout(self.workingAreaLayout)

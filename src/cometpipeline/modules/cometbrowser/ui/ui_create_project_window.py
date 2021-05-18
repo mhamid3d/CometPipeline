@@ -5,7 +5,6 @@ from pipeicon import icon_paths
 from mongorm import util as mgutil
 import cometpublish
 import mongorm
-import datetime
 import shutil
 import os
 

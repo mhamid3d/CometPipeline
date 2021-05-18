@@ -106,10 +106,11 @@ class FormVBoxLayout(QtWidgets.QVBoxLayout):
             iconLayout.setContentsMargins(0, 0, 0, 0)
         else:
             layout.addWidget(label)
-        try:
-            layout.addLayout(widget)
-        except:
-            layout.addWidget(widget)
+        if widget:
+            try:
+                layout.addLayout(widget)
+            except:
+                layout.addWidget(widget)
         layout.setContentsMargins(0, 0, 0, 0)
         self.addLayout(layout)
 

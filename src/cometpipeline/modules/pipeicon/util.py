@@ -19,10 +19,8 @@ def entityIcon(entityObject):
         return icon_paths.ICON_SEQUENCE_LRG
     elif type == "shot":
         return icon_paths.ICON_SHOT_LRG
-    elif entityObject.label == "root":
-        return icon_paths.ICON_COMETPIPE_LRG
     else:
-        return icon_paths.ICON_SEQUENCE_LRG
+        return icon_paths.ICON_COMETPIPE_LRG
 
 
 def dataObjectToIcon(dataObject):

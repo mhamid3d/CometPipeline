@@ -134,6 +134,7 @@ class PackageTypeNavigator(QtWidgets.QScrollArea):
             packageTypeButton = QtWidgets.QPushButton(packageType)
             packageTypeButton.setCursor(QtCore.Qt.PointingHandCursor)
             packageTypeButton.setCheckable(True)
+            packageTypeButton.setChecked(True)
             packageTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_PACKAGE_LRG))
             packageTypeButton.setStyleSheet(self.defaultButtonStyle)
             self.packageTypeButtonGroup.addButton(packageTypeButton, idx)

@@ -41,6 +41,7 @@ class AnimatedPopupMessage(QtWidgets.QLabel):
         self.hide()
 
         self.anim = QtCore.QPropertyAnimation(self, b"geometry")
+        self.anim.finished.connect(lambda: self.hide() if self._should_hide else None)
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.reverse_anim)
 
@@ -48,6 +49,7 @@ class AnimatedPopupMessage(QtWidgets.QLabel):
         self.setText(message)
 
     def do_anim(self):
+        self._should_hide = False
         self.show()
         self.raise_()
         self.anim.setDuration(200)
@@ -57,6 +59,7 @@ class AnimatedPopupMessage(QtWidgets.QLabel):
         self.timer.start(2500)
 
     def reverse_anim(self):
+        self._should_hide = True
         self.timer.stop()
         self.anim.stop()
         self.anim.setStartValue(QtCore.QRect(0, self.parent().height() - self._height, self._width, self._height))

@@ -3,14 +3,13 @@ from cometqt import util as pqtutil
 import os
 
 
-DEFAULT_ROOT_ENTITIES = [
+DEFAULT_ASSET_TYPES = [
     'char',
     'crowd',
     'env',
     'fx',
     'prop',
-    'vehcl',
-    'util'
+    'vehcl'
 ]
 
 FORMAT_TO_ICON = {
