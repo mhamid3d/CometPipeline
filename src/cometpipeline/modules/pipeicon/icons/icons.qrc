@@ -112,6 +112,9 @@
     <file>ICON_LINK_LRG.png</file>
     <file>ICON_LINK_MED.png</file>
     <file>ICON_LINK_SML.png</file>
+    <file>ICON_LIST_LRG.png</file>
+    <file>ICON_LIST_MED.png</file>
+    <file>ICON_LIST_SML.png</file>
     <file>ICON_LOCATION_LRG.png</file>
     <file>ICON_LOCATION_MED.png</file>
     <file>ICON_LOCATION_SML.png</file>
@@ -181,6 +184,9 @@
     <file>ICON_SPINNERTHIRD_LRG.png</file>
     <file>ICON_SPINNERTHIRD_MED.png</file>
     <file>ICON_SPINNERTHIRD_SML.png</file>
+    <file>ICON_STREAM_LRG.png</file>
+    <file>ICON_STREAM_MED.png</file>
+    <file>ICON_STREAM_SML.png</file>
     <file>ICON_SUBSTANCEDESIGNER_LRG.png</file>
     <file>ICON_SUBSTANCEPAINTER_LRG.png</file>
     <file>ICON_SYNC_LRG.png</file>

@@ -2,6 +2,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 from cometqt.widgets.ui_entity_viewer import EntityViewer
 from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 from cometqt.widgets.ui_user_avatar import AvatarLabel
+from cometqt.widgets.ui_delete_dialog import DeleteDialog
 from cometpipe.core import CREW_TYPES, DEFAULT_ASSET_TYPES
 from cometqt import util as cqtutil
 from mongorm import util as mgutil
@@ -17,17 +18,6 @@ import os
 LOGGER = logging.getLogger("Comet.ProjectManager")
 logging.basicConfig()
 LOGGER.setLevel(logging.INFO)
-
-
-def remove_confirm_dialog(dataObject):
-    msgBox = QtWidgets.QMessageBox()
-    msgBox.setText("Are you ABSOLUTELY sure you want to delete: [{}] ?".format(dataObject.get("path")))
-    msgBox.setInformativeText("THIS IS UNDOABLE. PLEASE BE 100% SURE YOU WANT TO DO THIS!")
-    msgBox.setStandardButtons(QtWidgets.QMessageBox.Apply | QtWidgets.QMessageBox.Cancel)
-    msgBox.setDefaultButton(msgBox.Cancel)
-    msgBox.setIcon(msgBox.Critical)
-    msgBox.setWindowTitle("CRITICAL STEP: DATABASE DELETION | {}".format(dataObject.get("label")))
-    return msgBox
 
 
 class UserSearch(QtWidgets.QDialog):
@@ -143,10 +133,7 @@ class UserItem(QtWidgets.QFrame):
         self.xred.move(pos)
 
     def removeUser(self):
-        self.crewPage.removeUser(self.userObject, self.crewType)
-
-        self.deleteLater()
-        del self
+        self.crewPage.removeUser(self.userObject, self.crewType, self)
 
 
 class AddUserButton(QtWidgets.QPushButton):
@@ -184,6 +171,7 @@ class AddUserButton(QtWidgets.QPushButton):
 class GeneralOptionsPage(QtWidgets.QWidget):
     def __init__(self, parent=None, jobObject=None):
         super(GeneralOptionsPage, self).__init__(parent=parent)
+        self.parent_main = parent
         self._currentJob = jobObject
         self.mainLayout = QtWidgets.QVBoxLayout(self)
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
@@ -215,13 +203,11 @@ class GeneralOptionsPage(QtWidgets.QWidget):
 
         # Full Title
         self.projectNameLine = QtWidgets.QLineEdit()
-        self.projectNameLine.setText(self._currentJob.fullname)
         self.projectNameLine.setValidator(QtGui.QRegExpValidator(QtCore.QRegExp("[A-Za-z 0-9]{0,100}"), self))
         self.projectNameLine.setMinimumHeight(32)
 
         # Alias
         self.projectAliasLine = QtWidgets.QLineEdit()
-        self.projectAliasLine.setText(self._currentJob.job)
         self.projectAliasLine.setReadOnly(True)
         self.projectAliasLine.setMinimumHeight(32)
 
@@ -249,14 +235,9 @@ class GeneralOptionsPage(QtWidgets.QWidget):
         self.xResSpin.setMinimumHeight(32)
         self.yResSpin.setMinimumHeight(32)
         self.aspectSpin.setMinimumHeight(32)
-        res = self._currentJob.resolution
-        self.xResSpin.setValue(res[0])
-        self.yResSpin.setValue(res[1])
-        self.aspectSpin.setValue(res[2])
 
         # Full Title
         self.projectDescription = QtWidgets.QLineEdit()
-        self.projectDescription.setText(self._currentJob.description)
         self.projectDescription.setMinimumHeight(32)
 
         # self.colorSpaceFrame = QtWidgets.QFrame()
@@ -307,7 +288,35 @@ class GeneralOptionsPage(QtWidgets.QWidget):
         self.yResSpin.editingFinished.connect(self.updateGeneral)
         self.aspectSpin.editingFinished.connect(self.updateGeneral)
 
+        self.setValues()
+
+    def setValues(self):
+        self.projectNameLine.setText(self._currentJob.fullname)
+        self.projectAliasLine.setText(self._currentJob.job)
+        self.projectDescription.setText(self._currentJob.description)
+
+        res = self._currentJob.resolution
+        self.xResSpin.setValue(res[0])
+        self.yResSpin.setValue(res[1])
+        self.aspectSpin.setValue(res[2])
+
     def updateGeneral(self):
+        if not self.parent_main.userIsAdmin:
+
+            errMsg = "Unknown error"
+
+            if not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
+            try:
+                self.emptyNameError.deleteLater()
+            except:
+                pass
+            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
+                                                       parent=self.parent(), width=self.parent().width())
+            self.emptyNameError.do_anim()
+            self.setValues()
+            return False
+
         fullname = self.projectNameLine.text()
         description = self.projectDescription.text()
         res = [self.xResSpin.value(), self.yResSpin.value(), self.aspectSpin.value()]
@@ -320,6 +329,7 @@ class GeneralOptionsPage(QtWidgets.QWidget):
 class EntityManagerPage(QtWidgets.QWidget):
     def __init__(self, parent=None, jobObject=None):
         super(EntityManagerPage, self).__init__(parent=parent)
+        self.parent_main = parent
         self._currentJob = jobObject
         self.mainLayout = QtWidgets.QHBoxLayout()
         self.setLayout(self.mainLayout)
@@ -328,8 +338,10 @@ class EntityManagerPage(QtWidgets.QWidget):
 
         self.entityViewer = EntityViewer()
         self.entityViewer.setCurrentJob(self._currentJob)
-        self.entityViewer.topLabel.hide()
         self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
+        self.entityViewer.entityTypesGroup.setExclusive(True)
+        self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.ExtendedSelection)
+        self.entityViewer.entityTree.selectionModel().setPropagateSelection(False)
 
         self.sequenceWidget = QtWidgets.QWidget()
         self.assetWidget = QtWidgets.QWidget()
@@ -355,6 +367,16 @@ class EntityManagerPage(QtWidgets.QWidget):
         self.tabWidget.addTab(self.assetWidget, "Asset")
         self.tabWidget.addTab(self.utilWidget, "Util")
 
+        self.tabWidget.currentChanged.connect(self.updateEntityType)
+
+        self.tabEntityTypeMap = {
+            self.tabWidget.indexOf(self.sequenceWidget): self.entityViewer.sequenceTypeButton,
+            self.tabWidget.indexOf(self.assetWidget): self.entityViewer.assetTypeButton,
+            self.tabWidget.indexOf(self.utilWidget): self.entityViewer.utilTypeButton
+        }
+
+        self.updateEntityType()
+
         self.removeSelectionButton = QtWidgets.QPushButton("REMOVE SELECTED ENTITY")
         self.removeSelectionButton.setStyleSheet("""
                     QPushButton{
@@ -374,8 +396,18 @@ class EntityManagerPage(QtWidgets.QWidget):
 
         self.setup_seq_grp()
         self.setup_asset_grp()
+        self.setup_util_grp()
 
         self.removeSelectionButton.clicked.connect(self.remove_selection)
+
+    def updateEntityType(self):
+        for btn in self.entityViewer.entityTypesGroup.buttons():
+            btn.setChecked(False)
+            btn.setEnabled(False)
+
+        self.tabEntityTypeMap[self.tabWidget.currentIndex()].setChecked(True)
+        self.tabEntityTypeMap[self.tabWidget.currentIndex()].setEnabled(True)
+        self.entityViewer.setSelectedEntities([])
 
     def setup_seq_grp(self):
         self.seqSettingsLayout = cqtutil.FormVBoxLayout()
@@ -444,7 +476,6 @@ class EntityManagerPage(QtWidgets.QWidget):
         self.assetNameLayout = QtWidgets.QHBoxLayout()
 
         self.assetNameLineEdit = QtWidgets.QLineEdit()
-        # exp = QtCore.QRegExp(r"^(?!.*__.*)[\w*]+$")
         exp = QtCore.QRegExp(r"[a-z*]+[A-Z]+[\w*]+$")
         validator = QtGui.QRegExpValidator(exp, self)
         self.assetNameLineEdit.setValidator(validator)
@@ -507,10 +538,32 @@ class EntityManagerPage(QtWidgets.QWidget):
         self.assetAddButton.clicked.connect(self.add_asset)
         self.assetListWidget.itemChanged.connect(self.updateAssetCache)
 
+    def setup_util_grp(self):
+        self.utilSettingsLayout = cqtutil.FormVBoxLayout()
+        self.utilLayout.addLayout(self.utilSettingsLayout)
+        self.utilLayout.addWidget(cqtutil.h_line())
+
+        self.utilNameLineEdit = QtWidgets.QLineEdit()
+        exp = QtCore.QRegExp(r"[a-z*]+[A-Z]+[\w*]+$")
+        validator = QtGui.QRegExpValidator(exp, self)
+        self.utilNameLineEdit.setValidator(validator)
+
+        self.utilAddButton = QtWidgets.QPushButton("ADD ENTITY")
+
+        self.utilNameLineEdit.setMinimumHeight(32)
+
+        self.utilSettingsLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.utilSettingsLayout.addRow("UTIL NAME", self.utilNameLineEdit)
+
+        self.utilLayout.addWidget(self.utilAddButton, alignment=QtCore.Qt.AlignBottom)
+
+        self.utilAddButton.clicked.connect(self.add_util)
+
     def add_sequence(self):
         seqName = self.seqNameLineEdit.text()
 
-        if not seqName or not len(seqName) == 3 or seqName == self._currentJob.job:
+        if not seqName or not len(seqName) == 3 or seqName == self._currentJob.job or not self.parent_main.userIsAdmin:
 
             errMsg = "Unknown error"
 
@@ -520,6 +573,8 @@ class EntityManagerPage(QtWidgets.QWidget):
                 errMsg = "Sequence name must be 3 characters"
             elif seqName == self._currentJob.job:
                 errMsg = "Sequence name cannot be same as job name"
+            elif not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
             try:
                 self.emptyNameError.deleteLater()
             except:
@@ -582,7 +637,7 @@ class EntityManagerPage(QtWidgets.QWidget):
         assetName = self.assetNameLineEdit.text()
         prefixCombo = self.assetPrefixCombo.currentText()
 
-        if not assetName or not prefixCombo:
+        if not assetName or not prefixCombo or not self.parent_main.userIsAdmin:
 
             errMsg = "Unknown error"
 
@@ -590,6 +645,8 @@ class EntityManagerPage(QtWidgets.QWidget):
                 errMsg = "Asset name is required"
             elif not prefixCombo:
                 errMsg = "Asset prefix is required"
+            elif not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
             try:
                 self.emptyNameError.deleteLater()
             except:
@@ -649,6 +706,51 @@ class EntityManagerPage(QtWidgets.QWidget):
 
         self.entityViewer.populate()
 
+    def add_util(self):
+        utilName = self.utilNameLineEdit.text()
+
+        if not utilName or not self.parent_main.userIsAdmin:
+
+            errMsg = "Unknown error"
+
+            if not utilName:
+                errMsg = "Util name is required"
+            elif not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
+            try:
+                self.emptyNameError.deleteLater()
+            except:
+                pass
+            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
+                                                       parent=self.parent(), width=self.parent().width())
+            self.emptyNameError.do_anim()
+            return False
+
+        handler = mongorm.getHandler()
+        filt = mongorm.getFilter()
+
+        filt.search(handler['entity'], type='util', label=utilName, job=self._currentJob.job)
+        utilObject = handler['entity'].one(filt)
+        filt.clear()
+
+        filt.search(handler['entity'], type='util', label='root', job=self._currentJob.job)
+        rootEntityObject = handler['entity'].one(filt)
+        filt.clear()
+
+        # If the util does not already exist, create it
+        if not utilObject:
+            utilObject = handler['entity'].create(
+                label=utilName,
+                job=self._currentJob.job,
+                type='util',
+                created_by=mgutil.getCurrentUser().getUuid(),
+                parent_uuid=rootEntityObject.getUuid()
+            )
+            utilObject.save()
+            cometpublish.build_entity_directory(utilObject)
+
+        self.entityViewer.populate()
+
     def updateShotList(self):
         self.shotListWidget.clear()
         if not self.seqNameLineEdit.text() or not len(self.seqNameLineEdit.text()) == 3:
@@ -697,19 +799,17 @@ class EntityManagerPage(QtWidgets.QWidget):
         handler = mongorm.getHandler()
         flt = mongorm.getFilter()
 
-        entitySelection = self.entityViewer.entityTree.selectedItems()
-        entityIsJob = True
-        if entitySelection:
-            entitySelection = entitySelection[0]
-            entityIsJob = entitySelection.dataObject.get("type") == "job"
+        del_items = set()
 
-        if not entitySelection or entityIsJob:
+        entitySelection = self.entityViewer.entityTree.selectedItems()
+
+        if not entitySelection or not self.parent_main.userIsAdmin:
             errMsg = "Unknown error"
 
             if not entitySelection:
                 errMsg = "Please make a selection in the tree"
-            elif entityIsJob:
-                errMsg = "Cannot delete job level entity!"
+            elif not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
             try:
                 self.emptyNameError.deleteLater()
             except:
@@ -719,48 +819,13 @@ class EntityManagerPage(QtWidgets.QWidget):
             self.emptyNameError.do_anim()
             return False
 
-        confirmResult = remove_confirm_dialog(entitySelection.dataObject).exec_()
+        for item in entitySelection:
+            if not (item.dataObject.get("type") == "util" and item.dataObject.get("label") == "root"):
+                del_items.add(item)
 
-        if confirmResult == QtWidgets.QMessageBox.Apply and cqtutil.doLoginConfirm():
-            # Recursive Entities
-            allEntities = entitySelection.dataObject.recursive_children()
-            allEntities.append_object(entitySelection.dataObject)
-
-            allPackages = mongorm.createContainer(handler['package'])
-            allVersions = mongorm.createContainer(handler['version'])
-            allContent = mongorm.createContainer(handler['content'])
-            allDependencies = mongorm.createContainer(handler['dependency'])
-
-            for entity in allEntities:
-                flt.search(handler['package'], job=entity.get("job"), parent_uuid=entity.getUuid())
-                result = handler['package'].all(flt)
-                allPackages.extend(result)
-            for package in allPackages:
-                allVersions.extend(package.children())
-            for version in allVersions:
-                allContent.extend(version.children())
-                flt.clear()
-                flt.search(handler['dependency'], job=version.get("job"), source_version_uuid=version.getUuid())
-                allDependencies.extend(handler['dependency'].all(flt))
-                flt.clear()
-                flt.search(handler['dependency'], job=version.get("job"), link_version_uuid=version.getUuid())
-                allDependencies.extend(handler['dependency'].all(flt))
-
-            prunePaths = []
-
-            for objects in [allEntities, allPackages, allVersions, allContent, allDependencies]:
-                for obj in objects:
-                    if not objects.interfaceName() == "Dependency":
-                        prunePaths.append(obj.get("path"))
-                    LOGGER.info("Removing database entry: {}".format(obj))
-                    obj.delete()
-
-            prunePaths.sort()
-
-            for path in prunePaths:
-                if os.path.exists(path):
-                    LOGGER.info("Deleting path: {}".format(path))
-                    shutil.rmtree(path)
+        if cqtutil.doLoginConfirm():
+            deleteDialog = DeleteDialog(parent=self, dataObjects=[x.dataObject for x in del_items])
+            deleteDialog.exec_()
 
         self.entityViewer.populate()
 
@@ -768,18 +833,23 @@ class EntityManagerPage(QtWidgets.QWidget):
 class DangerZonePage(QtWidgets.QWidget):
     def __init__(self, parent=None, jobObject=None):
         super(DangerZonePage, self).__init__(parent=parent)
+        self.parent_main = parent
         self._currentJob = jobObject
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(self.mainLayout)
         self.deleteProjectButton = QtWidgets.QPushButton("DELETE PROJECT")
+        self.deleteProjectButton.setCursor(QtCore.Qt.PointingHandCursor)
         self.deleteProjectButton.setStyleSheet("""
                     QPushButton{
-                        background: #bf2626;
-                        border: none;
+                        background: transparent;
+                        border: 1px solid red;
+                        border-radius: 0px;
+                        color: red;
                     }
                     QPushButton:hover{
-                        border: 1px solid #c9c9c9;
+                        border: 1px solid #a6a6a6;
+                        color: #a6a6a6;
                     }
                     QPushButton:pressed{
                         background: #2e2e2e;
@@ -790,44 +860,25 @@ class DangerZonePage(QtWidgets.QWidget):
         self.deleteProjectButton.clicked.connect(self.delete_project)
 
     def delete_project(self):
-        confirm_delete = remove_confirm_dialog(self._currentJob).exec_()
-        user_confirm = cqtutil.doLoginConfirm()
 
-        all_objects = []
-        prune_paths = []
+        if not mgutil.user_in_crewType(mgutil.getCurrentUser(), self._currentJob, "Creator"):
 
-        if confirm_delete and user_confirm:
-            handler = mongorm.getHandler()
-            filt = mongorm.getFilter()
+            errMsg = "Insufficient permissions"
 
-            filt.search(handler['entity'], job=self._currentJob.job)
-            all_objects.extend([x for x in handler['entity'].all(filt)])
-            filt.clear()
-            filt.search(handler['package'], job=self._currentJob.job)
-            all_objects.extend([x for x in handler['package'].all(filt)])
-            filt.clear()
-            filt.search(handler['version'], job=self._currentJob.job)
-            all_objects.extend([x for x in handler['version'].all(filt)])
-            filt.clear()
-            filt.search(handler['content'], job=self._currentJob.job)
-            all_objects.extend([x for x in handler['content'].all(filt)])
-            filt.clear()
-            filt.search(handler['dependency'], job=self._currentJob.job)
-            all_objects.extend([x for x in handler['dependency'].all(filt)])
-            filt.clear()
+            try:
+                self.emptyNameError.deleteLater()
+            except:
+                pass
+            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
+                                                       parent=self.parent(), width=self.parent().width())
+            self.emptyNameError.do_anim()
+            return False
 
-            all_objects.append(self._currentJob)
-
-        for obj in all_objects:
-            if obj.path:
-                prune_paths.append(obj.abs_path())
-            LOGGER.info("Removing database entry: {}".format(obj))
-            obj.delete()
-
-        for path in prune_paths:
-            if os.path.exists(path):
-                LOGGER.info("Deleting path: {}".format(path))
-                shutil.rmtree(path)
+        if cqtutil.doLoginConfirm():
+            deleteDialog = DeleteDialog(parent=self, dataObjects=[self._currentJob])
+            deleteDialog.exec_()
+        else:
+            return
 
         from cometbrowser.browser import ProjectBrowserMain
         dialog = cqtutil.get_top_window(self, ProjectManager)
@@ -850,6 +901,7 @@ class DangerZonePage(QtWidgets.QWidget):
 class CrewManagerPage(QtWidgets.QWidget):
     def __init__(self, parent=None, jobObject=None):
         super(CrewManagerPage, self).__init__(parent=parent)
+        self.parent_main = parent
         self._currentJob = jobObject
         self.mainLayout = QtWidgets.QVBoxLayout(self)
         self.mainLayout.setAlignment(QtCore.Qt.AlignTop)
@@ -912,6 +964,20 @@ class CrewManagerPage(QtWidgets.QWidget):
         if not userObject:
             raise RuntimeError("Tried to add a None object to {}".format(crewType))
 
+        if not self.parent_main.userIsAdmin:
+            errMsg = "Unknown error"
+
+            if not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
+            try:
+                self.emptyNameError.deleteLater()
+            except:
+                pass
+            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
+                                                       parent=self.parent(), width=self.parent().width())
+            self.emptyNameError.do_anim()
+            return False
+
         layout = self._layoutCache[crewType]
         existingUsrWidgets = [x.widget() for x in layout.itemList if isinstance(x.widget(), UserItem)]
         existingUsrUuids = [x.userObject.getUuid() for x in existingUsrWidgets]
@@ -930,12 +996,39 @@ class CrewManagerPage(QtWidgets.QWidget):
         userButton = UserItem(userObject=userObject, parent=self, crewType=crewType, jobObject=self._currentJob)
         layout.insertWidget(layout.count() - 2, userButton)
 
-    def removeUser(self, userObject, crewType):
+    def removeUser(self, userObject, crewType, userItem):
         if not self._layoutCache[crewType]:
             raise RuntimeError("No Layout found for crew type: {}".format(crewType))
 
         if not userObject:
             raise RuntimeError("Tried to remove a None object to {}".format(crewType))
+
+        userIsInvincible = False
+        if mgutil.user_in_crewType(userObject, self._currentJob, "Creator"):
+            userIsInvincible = True
+
+        if not self.parent_main.userIsAdmin or (userIsInvincible and (not mgutil.getCurrentUser() == userObject or crewType == "Admins")):
+            errMsg = "Unknown error"
+
+            if not self.parent_main.userIsAdmin:
+                errMsg = "Insufficient permissions"
+            elif userIsInvincible and (not mgutil.getCurrentUser() == userObject or crewType == "Admins"):
+                errMsg = "You cannot remove a creator from this crew type"
+            try:
+                self.emptyNameError.deleteLater()
+            except:
+                pass
+            self.emptyNameError = AnimatedPopupMessage(message=errMsg, type=AnimatedPopupMessage.ERROR,
+                                                       parent=self.parent(), width=self.parent().width())
+            self.emptyNameError.do_anim()
+            return False
+
+        areYouSure = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning, "Remove {} From {}".format(userObject.fullname(), crewType),
+                                           "Are You Sure You Want To Remove {} From {}".format(userObject.fullname(), crewType),
+                                           QtWidgets.QMessageBox.Yes|QtWidgets.QMessageBox.No).exec_()
+
+        if areYouSure == QtWidgets.QMessageBox.No:
+            return False
 
         jobCrew = self._currentJob.crew_dict()
         crewMem = jobCrew[crewType]
@@ -945,20 +1038,28 @@ class CrewManagerPage(QtWidgets.QWidget):
         self._currentJob.crew = jobCrew
         self._currentJob.save()
 
+        userItem.deleteLater()
+        del userItem
+
 
 class ProjectManager(QtWidgets.QDialog):
+
+    @property
+    def userIsAdmin(self):
+        return mgutil.is_user_admin(mgutil.getCurrentUser(), self._currentJob)
 
     def __init__(self, parent=None, jobObject=None):
         super(ProjectManager, self).__init__(parent=parent)
         self._currentJob = jobObject
+        if not self._currentJob:
+            self.reject()
+            return
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.mainLayout)
         self.setup_ui()
 
     def setup_ui(self):
-        if not self._currentJob:
-            self.reject()
 
         self.setWindowTitle("Project Manager: [{}]".format(self._currentJob.get("label")))
 
@@ -1066,8 +1167,6 @@ class ProjectManager(QtWidgets.QDialog):
 
 if __name__ == '__main__':
     import sys
-    import qdarkstyle
-    import mongorm
 
     h = mongorm.getHandler()
     f = mongorm.getFilter()

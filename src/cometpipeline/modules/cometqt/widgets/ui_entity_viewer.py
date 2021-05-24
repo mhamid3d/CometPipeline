@@ -359,6 +359,14 @@ class EntityViewer(QtWidgets.QWidget):
         self.topLabelLayout = QtWidgets.QHBoxLayout()
         self.topLabelLayout.setAlignment(QtCore.Qt.AlignLeft)
         self.topSearchLayout = QtWidgets.QHBoxLayout()
+        self.filtersLayout = QtWidgets.QHBoxLayout()
+        self.entityTypeLayout = QtWidgets.QHBoxLayout()
+        self.entityTypeLayout.setSpacing(1)
+        self.filtersLayout.addLayout(self.entityTypeLayout)
+        self.listTypeLayout = QtWidgets.QHBoxLayout()
+        self.listTypeLayout.setAlignment(QtCore.Qt.AlignRight)
+        self.listTypeLayout.setSpacing(1)
+        self.filtersLayout.addLayout(self.listTypeLayout)
 
         self.jobSelectWidget = QtWidgets.QWidget()
         self.jobSelectLayout = QtWidgets.QVBoxLayout()
@@ -367,34 +375,73 @@ class EntityViewer(QtWidgets.QWidget):
         self.jobSelectLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.addWidget(self.jobSelectWidget)
 
-        jobLabel = QtWidgets.QLabel("Job")
-        jobLabel.setIndent(0)
-        jobLabel.setAlignment(QtCore.Qt.AlignLeft)
-        jobLabel.setStyleSheet("""
-            QLabel{
-                background: none;
-                color: #a6a6a6;
-                font-size: 20px;
-            }
-        """)
-
         self.jobComboBox = JobComboBox(parent=self)
 
-        self.jobSelectLayout.addWidget(jobLabel)
         self.jobSelectLayout.addWidget(self.jobComboBox)
         self.jobSelectLayout.addWidget(cqtutil.h_line())
-
-        self.topLabel = QtWidgets.QLabel("Entities")
-        self.topLabel.setIndent(0)
-        self.topLabel.setAlignment(QtCore.Qt.AlignLeft)
-        self.topLabel.setStyleSheet(jobLabel.styleSheet())
 
         self.refreshButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_RELOAD_LRG)
         self.filterButton = cqtutil.FlatIconButton(size=self.SEARCH_HEIGHT, icon=icon_paths.ICON_FILTER_LRG)
         self.searchBar = UiSearchBar(height=self.SEARCH_HEIGHT)
         self.entityTree = EntityTree(parent=self)
 
-        self.searchBar.editingFinished.connect(self.doSearch)
+        self.entityTypesGroup = QtWidgets.QButtonGroup()
+        self.entityTypesGroup.setExclusive(False)
+        self.assetTypeButton = QtWidgets.QPushButton("Assets")
+        self.sequenceTypeButton = QtWidgets.QPushButton("Sequences")
+        self.utilTypeButton = QtWidgets.QPushButton("Util")
+        self.assetTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_ASSET_LRG))
+        self.sequenceTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_SEQUENCE_LRG))
+        self.utilTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_COMETPIPE_LRG))
+        self.entityTypesGroup.addButton(self.assetTypeButton, id=0)
+        self.entityTypesGroup.addButton(self.sequenceTypeButton, id=1)
+        self.entityTypesGroup.addButton(self.utilTypeButton, id=2)
+        for btn in self.entityTypesGroup.buttons():
+            btn.setCheckable(True)
+            btn.setChecked(True)
+            btn.setStyleSheet("""
+                QPushButton{
+                    border-radius: 0px;
+                }
+                QPushButton:checked{
+                    border: none;
+                }
+            """)
+        # self.entityTypesGroup.buttonClicked.connect(self.entityTypeChange)
+        self.entityTypesGroup.buttonToggled.connect(self.applyAllFilters)
+
+        self.listTypeGroup = QtWidgets.QButtonGroup()
+        self.listTypeButton = QtWidgets.QPushButton()
+        self.treeTypeButton = QtWidgets.QPushButton()
+        self.listTypeGroup.addButton(self.listTypeButton, id=0)
+        self.listTypeGroup.addButton(self.treeTypeButton, id=1)
+        self.listTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_LIST_LRG))
+        self.treeTypeButton.setIcon(QtGui.QIcon(icon_paths.ICON_STREAM_LRG))
+        self.listTypeLayout.addWidget(self.listTypeButton, alignment=QtCore.Qt.AlignRight)
+        self.listTypeLayout.addWidget(self.treeTypeButton, alignment=QtCore.Qt.AlignRight)
+        self.listTypeButton.setToolTip("List View")
+        self.treeTypeButton.setToolTip("Tree View")
+        for btn in self.listTypeGroup.buttons():
+            btn.setStyleSheet("""
+                QPushButton{
+                    border-radius: none;
+                }
+                QPushButton:checked{
+                    border: none;
+                    background: #1e1e1e;
+                }
+            """)
+            btn.setCheckable(True)
+        self.treeTypeButton.setChecked(True)
+        self.listTypeGroup.buttonToggled.connect(lambda: self.populate(reload=True))
+
+        self.entityTypeLayout.addWidget(self.assetTypeButton)
+        self.entityTypeLayout.addWidget(self.sequenceTypeButton)
+        self.entityTypeLayout.addWidget(self.utilTypeButton)
+
+        # TODO: If things get slow switch to 'editingFinished' so that it doesn't apply filters on each keystroke
+        # self.searchBar.editingFinished.connect(self.applyAllFilters)
+        self.searchBar.textChanged.connect(self.applyAllFilters)
         self.refreshButton.clicked.connect(lambda: self.populate(reload=True))
         self.jobComboBox.currentIndexChanged.connect(lambda: self.setCurrentJob(
             self.jobComboBox.currentDataObject()
@@ -402,12 +449,12 @@ class EntityViewer(QtWidgets.QWidget):
         self.entityChanged = self.entityTree.itemSelectionChanged
 
         self.mainLayout.addLayout(self.topLabelLayout)
-        self.topLabelLayout.addWidget(self.topLabel)
         self.mainLayout.addLayout(self.topSearchLayout)
         self.topSearchLayout.addWidget(self.searchBar)
         self.topSearchLayout.addWidget(self.refreshButton)
         self.topSearchLayout.addWidget(self.filterButton)
         self.mainLayout.addWidget(cqtutil.h_line())
+        self.mainLayout.addLayout(self.filtersLayout)
         self.mainLayout.addWidget(self.entityTree)
 
         self._currentJob = None
@@ -468,8 +515,49 @@ class EntityViewer(QtWidgets.QWidget):
     def isDialog(self):
         return self._isDialog
 
+    def applyAllFilters(self):
+        hide_items = set()
+
+        searchText = self.searchBar.text()
+        entityTypes = {
+            'asset': self.assetTypeButton.isChecked(),
+            'shot': self.sequenceTypeButton.isChecked(),
+            'sequence': self.sequenceTypeButton.isChecked(),
+            'util': self.utilTypeButton.isChecked()
+        }
+        allItems = self.getAllItems()
+
+        for item in allItems:
+
+            if item.dataObject.label == "root" and item.dataObject.type == "util":
+                continue
+
+            if not entityTypes[item.dataObject.get("type")]:
+                if item not in hide_items:
+                    hide_items.add(item)
+
+            if searchText and not str(searchText.upper()) in str(item.text(0).upper()):
+                if item not in hide_items:
+                    hide_items.add(item)
+
+        if self.listTypeGroup.checkedId() is 1:
+            for item in allItems:
+                parents = []
+                if item not in hide_items:
+                    while item.parent():
+                        item = item.parent()
+                        parents.append(item)
+                    for parent in parents:
+                        if parent in hide_items:
+                            hide_items.remove(parent)
+
+        for item in allItems:
+            item.setHidden(item in hide_items)
+
     def populate(self, reload=False):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+
+        viewType = self.listTypeGroup.checkedId()
 
         jobObject = self._currentJob
         handler = mongorm.getHandler()
@@ -491,20 +579,25 @@ class EntityViewer(QtWidgets.QWidget):
             jobRootItem.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(rootEntityObject)))
             jobRootItem.dataObject = rootEntityObject
 
-            # self.recursive_populate(jobRootItem)
+            if viewType is 0:
 
-            filter.search(handler['entity'], job=jobObject.job)
-            remainingEntities = handler['entity'].all(filter)
-            remainingEntities.remove_object(rootEntityObject)
-            filter.clear()
+                filter.search(handler['entity'], job=jobObject.job)
+                remainingEntities = handler['entity'].all(filter)
+                remainingEntities.remove_object(rootEntityObject)
+                remainingEntities.sort(sort_field='type')
+                filter.clear()
 
-            for entity in remainingEntities:
-                item = QtWidgets.QTreeWidgetItem(self.entityTree)
-                item.setText(0, entity.get("label"))
-                item.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(entity)))
-                item.dataObject = entity
+                for entity in remainingEntities:
+                    item = QtWidgets.QTreeWidgetItem(self.entityTree)
+                    item.setText(0, entity.get("label"))
+                    item.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(entity)))
+                    item.dataObject = entity
 
-        self.doSearch()
+            else:
+
+                self.recursive_populate(jobRootItem)
+
+        self.applyAllFilters()
         self.entityTree.expandAll()
 
         if reload:
@@ -516,13 +609,9 @@ class EntityViewer(QtWidgets.QWidget):
         handler = mongorm.getHandler()
         filt = mongorm.getFilter()
         rootDataObject = rootTreeItem.dataObject
-        if self._entityType == self.TYPE_ASSETS:
-            filt.search(handler['entity'], job=rootDataObject.job, type="asset",
-                        parent_uuid=rootDataObject.getUuid())
-        elif self._entityType == self.TYPE_PRODUCTION:
-            filt.search(handler['entity'], job=rootDataObject.job, type__ne="asset",
-                        parent_uuid=rootDataObject.getUuid())
+        filt.search(handler['entity'], job=rootDataObject.job, parent_uuid=rootDataObject.getUuid())
         children = handler['entity'].all(filt)
+        children.sort(sort_field='type')
         if children:
             for child in children:
                 item = QtWidgets.QTreeWidgetItem(rootTreeItem)
@@ -530,25 +619,6 @@ class EntityViewer(QtWidgets.QWidget):
                 item.setIcon(0, QtGui.QIcon(iconutil.dataObjectToIcon(child)))
                 item.dataObject = child
                 self.recursive_populate(item)
-
-    def doSearch(self):
-        currentText = self.searchBar.text()
-        keep_items = []
-        for item in self.getAllItems():
-            item.setHidden(True)
-            if currentText is None:
-                item.setHidden(False)
-            elif currentText.upper() in item.text(0).upper():
-                keep_items.append(item)
-
-        for kp in keep_items:
-            kp.setHidden(False)
-            all_parent = []
-            while kp.parent():
-                kp = kp.parent()
-                all_parent.append(kp)
-            for parent in all_parent:
-                parent.setHidden(False)
 
     def setFromEnvironment(self):
         show = os.getenv("SHOW")
@@ -611,6 +681,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     win = EntityViewer()
     win.setFromEnvironment()
+    win.resize(400, 800)
     win.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
     win.show()
     sys.exit(app.exec_())

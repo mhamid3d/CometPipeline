@@ -72,6 +72,15 @@ class Job(DataObject, mongoengine.Document):
         assets = db["entitiy"].all(filt)
         return assets
 
+    def ocioConfigFile(self):
+        db = mongorm.getHandler()
+        flt = mongorm.getFilter()
+        flt.search(db['package'], label="ocio_root", job=self.label)
+        package = db['package'].one(flt)
+        version = package.latest(version='approved')
+        configObject = version.default_content()
+        return configObject.abs_path()
+
 
 class Entity(DataObject, mongoengine.Document):
 
@@ -81,10 +90,10 @@ class Entity(DataObject, mongoengine.Document):
 
     # Required fields
     type = mongoengine.StringField(required=True, dispName="Type")  # eg: 'sequence', 'shot', 'asset', 'util'
+    framerange = mongoengine.ListField(required=True, dispName="Frame Range", default=[1001, 1101])
 
     # Optional fields
     parent_uuid = mongoengine.StringField(dispName="Parent UUID", default=None)
-    framerange = mongoengine.ListField(dispName="Frame Range")
     thumbnail = mongoengine.StringField(dispName="Thumbnail", icon=icon_paths.ICON_IMAGE_SML)
 
     def children(self):
@@ -103,7 +112,7 @@ class Entity(DataObject, mongoengine.Document):
             container.append_object(child)
             container.extend(child.recursive_children())
 
-        container.sort(sort_field="jobpath")
+        container.sort(sort_field="path")
 
         return container
 
@@ -182,13 +191,42 @@ class Package(DataObject, mongoengine.Document):
         entity = db['entity'].one(filt)
         return entity
 
-    def latest(self):
+    def latest(self, version=None):
         children = self.children()
+
         if not children:
             return None
 
         children.sort("version", reverse=True)
-        return children[0]
+        versionObject = children[0]
+
+        if version:
+            if version.isdigit():
+
+                vdigit = None
+
+                for child in children:
+                    if child.get("version") == version:
+                        vdigit = child
+
+                versionObject = vdigit
+
+            elif version == "approved":
+                for child in children:
+                    if child.get("status") == "approved":
+                        versionObject = child
+            elif version == "declined":
+                for child in children:
+                    if child.get("status") == "declined":
+                        versionObject = child
+            elif version == "pending":
+                for child in children:
+                    if child.get("status") == "pending":
+                        versionObject = child
+            else:
+                return None
+
+        return versionObject
 
     def siblings(self):
         db = mongorm.getHandler()

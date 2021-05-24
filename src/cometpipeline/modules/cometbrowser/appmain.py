@@ -2,7 +2,15 @@ from qtpy import QtWidgets, QtGui, QtCore
 from cometbrowser.ui.ui_login_window import UiLoginWindow
 from cometbrowser.browser import ProjectBrowserMain
 from cometqt import util as pqtutil
+from pipeicon import icon_paths
 import qdarkstyle
+
+
+class SplashScreen(QtWidgets.QSplashScreen):
+    def __init__(self):
+        super(SplashScreen, self).__init__()
+        self.pix = QtGui.QPixmap(icon_paths.ICON_COMETPIPE_LRG)
+        self.setPixmap(self.pix)
 
 
 class ProjectBrowserBootstrap(object):

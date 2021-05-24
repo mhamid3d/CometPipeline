@@ -375,7 +375,7 @@ class PackageTree(TreeView):
         elif self.main_action in list(self._menu.openInAppsMap.keys()):
             subprocess.Popen(self._menu.openInAppsMap[self.main_action], close_fds=True)
         elif self.main_action == self._menu.deleteAction:
-            deleteResult = DeleteDialog(parent=self, dataObjects=selectedItems)
+            deleteResult = DeleteDialog(parent=self, dataObjects=[x.dataObject for x in selectedItems])
             deleteResult.exec_()
             self.model().dataNeedsRefresh.emit()
 

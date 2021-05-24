@@ -1,72 +1,101 @@
 #! /usr/bin/env python
 
 
-import os
 import argparse
 import sys
 import mongorm
+import time
+import tempfile
+from cometqt.util import get_settings
+
+handler = mongorm.getHandler()
+filt = mongorm.getFilter()
+settings = get_settings(appName="PipeCore")
 
 
-if not os.getenv("SHOW"):
-	print("Please set a show first using 'cshow <show>'")
-	sys.exit()
-
-
-def all_shots():
-	handler = mongorm.getHandler()
-	filt = mongorm.getFilter()
-	filt.search(handler['entity'], type__ne="asset", job=os.getenv('SHOW'))
-	all_shots = handler['entity'].all(filt)
-	if not all_shots:
-		print("Could not find any shots in job: {}".format(os.getenv("SHOW")))
-		sys.exit()
-	return all_shots
-
-
-def list_shots():
-	for job in [x.get('label') for x in all_shots()]:
-		print("-- {}".format(job))
-
-
-parser = argparse.ArgumentParser(description='Set Comet Pipeline Shot')
-parser.add_argument('-l', '--list', default=False, action='store_true', help='List all available shots')
-
+##### PARSE ARGS
+parser = argparse.ArgumentParser(description='Set Comet Pipeline Show')
+# parser.add_argument('-l', '--list', default=False, action='store_true', help='List all available shows')
+parser.add_argument('-s', '--shell', default=False, action='store_true', help='Set environment only to shell')
+parser.add_argument('-r', '--reload', default=False, action='store_true', help='Read environment file and reload')
 
 kargs = parser.parse_known_args()
-if kargs[0].list:
-	list_shots()
-	sys.exit()
+
+if kargs[0].reload:
+    show = settings.value("shell/SHOW")
+    shot = settings.value("shell/SHOT")
+
+    if show and shot:
+        SHOTPATH = "{}/{}".format(show, shot)
+    else:
+        sys.exit()
+
 else:
-	parser.add_argument('Shot', metavar='shot', type=str, help='Name of shot')
-	args = parser.parse_args()
-
-targetShot = args.Shot
-
-
-if not targetShot in [x.get('label') for x in all_shots()]:
-	print("Please select a valid Shot:")
-	list_shots()
-	sys.exit()
+    parser.add_argument('Shot', metavar='shot', type=str, help='<show>/<shot>')
+    args = parser.parse_args()
+    SHOTPATH = args.Shot
 
 
-confDir = os.path.abspath('{}/.config/CometPipeline'.format(os.getenv('HOME')))
+def dataObjectFromShotPath(shotPath):
 
-if not os.path.exists(confDir):
-	os.mkdir(confDir)
+    if "/" not in shotPath:
+        show = shotPath
+        shot = "root"
+    else:
+        show, shot = shotPath.split("/")
 
-showFile = os.path.abspath(os.path.join(confDir, '.SHOW'))
-shotFile = os.path.abspath(os.path.join(confDir, '.SHOT'))
+    if not show or not shot:
+        print("Invalid job/shot", file=sys.stderr)
+        sys.exit()
 
-if not os.path.exists(showFile):
-	open(showFile, 'a').close()
+    filt.search(handler['job'], label=show)
+    jobObject = handler['job'].one(filt)
+    filt.clear()
 
-if not os.path.exists(shotFile):
-	open(shotFile, 'a').close()
+    if not jobObject:
+        print("Could not find job: {}".format(show), file=sys.stderr)
+        sys.exit()
+
+    filt.search(handler['entity'], label=shot, job=jobObject.label)
+    entityObject = handler['entity'].one(filt)
+    filt.clear()
+
+    if not entityObject:
+        print("Could not find shot: {}".format(shot), file=sys.stderr)
+        sys.exit()
+
+    return jobObject, entityObject
 
 
-# Write to file
+def getEnvVars(jobObject, entityObject):
 
-with open(shotFile, "w") as f:
-	f.write(targetShot)
-	
+    env_vars = {
+        'SHOW': jobObject.label,
+        'SHOT': entityObject.label,
+        'SHOT_START': entityObject.get("framerange")[0],
+        'SHOT_END': entityObject.get("framerange")[1],
+        'OCIO': jobObject.ocioConfigFile(),
+        'SHOW_RESOLUTION': '"{}"'.format(" ".join([str(x) for x in jobObject.get("resolution")]))
+    }
+
+    return env_vars
+
+
+def writeToSettings(envVars):
+    settings.beginGroup("shell")
+    for k, v in envVars.items():
+        settings.setValue(k, v)
+    settings.endGroup()
+
+    # TODO: this works on Linux, need to find a windows solution
+    print(";".join(["export {}={}".format(k, v) for k, v in envVars.items()]))
+
+
+def doParseAndSet(shotpath):
+    t = time.time()
+    JOBOBJECT, ENTITYOBJECT = dataObjectFromShotPath(shotpath)
+    writeToSettings(envVars=getEnvVars(JOBOBJECT, ENTITYOBJECT))
+
+
+doParseAndSet(SHOTPATH)
 sys.exit(99)

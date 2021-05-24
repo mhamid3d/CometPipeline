@@ -34,7 +34,7 @@ class DeleteDialog(QtWidgets.QDialog):
 
         self.setLayout(self.mainLayout)
         self.itemsToDeleteList = QtWidgets.QListWidget()
-        self._dataObjects = [item.dataObject for item in dataObjects]
+        self._dataObjects = dataObjects
         self.invalidInterfaceTypes = [
             "User",
             "Content",
@@ -79,7 +79,7 @@ class DeleteDialog(QtWidgets.QDialog):
         assert jobObject.interfaceName() == "Job", "Invalid interface deletion method: Tried deleting {} with {} method".format(
                     jobObject.interfaceName(), "Job")
 
-        prunePaths = [jobObject.get("path")]
+        prunePaths = [jobObject.abs_path()]
         pruneObjects = [jobObject]
 
         entities = jobObject.children()
@@ -102,14 +102,14 @@ class DeleteDialog(QtWidgets.QDialog):
         assert entityObject.interfaceName() == "Entity", "Invalid interface deletion method: Tried deleting {} with {} method".format(
                     entityObject.interfaceName(), "Entity")
 
-        prunePaths = [entityObject.get("path")]
+        prunePaths = [entityObject.abs_path()]
         pruneObjects = [entityObject]
 
         recursiveEntites = entityObject.recursive_children()
 
         for childEntity in recursiveEntites:
             pruneObjects.append(childEntity)
-            prunePaths.append(childEntity.get("path"))
+            prunePaths.append(childEntity.abs_path())
 
         for object in pruneObjects:
             for package in object.packages():
@@ -128,7 +128,7 @@ class DeleteDialog(QtWidgets.QDialog):
         assert packageObject.interfaceName() == "Package", "Invalid interface deletion method: Tried deleting {} with {} method".format(
                     packageObject.interfaceName(), "Package")
 
-        prunePaths = [packageObject.get("path")]
+        prunePaths = [packageObject.abs_path()]
         pruneObjects = [packageObject]
 
         versionObjects = packageObject.children()
@@ -152,7 +152,7 @@ class DeleteDialog(QtWidgets.QDialog):
         assert versionObject.interfaceName() == "Version", "Invalid interface deletion method: Tried deleting {} with {} method".format(
                     versionObject.interfaceName(), "Version")
 
-        prunePaths = [versionObject.get("path")]
+        prunePaths = [versionObject.abs_path()]
         pruneObjects = [versionObject]
         contents = versionObject.children()
         dependencies = versionObject.get_dependency_masters()
@@ -160,7 +160,7 @@ class DeleteDialog(QtWidgets.QDialog):
 
         for content in contents:
             pruneObjects.append(content)
-            prunePaths.append(content.get("path"))
+            prunePaths.append(content.abs_path())
 
         for dependency in dependencies:
             pruneObjects.append(dependency)

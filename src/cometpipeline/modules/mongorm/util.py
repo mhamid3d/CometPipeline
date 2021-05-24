@@ -37,3 +37,13 @@ def get_comet_job_root():
 
 def get_abs_job_path(relative_path):
     return os.path.abspath(os.path.join(get_comet_job_root(), relative_path.strip("/")))
+
+
+def user_in_crewType(userObject, jobObject, crewType=''):
+    if not crewType or not crewType in jobObject.crew:
+        raise RuntimeError("Invalid crew type: {}".format(crewType))
+    return userObject.getUuid() in jobObject.crew[crewType]
+
+
+def is_user_admin(userObject, jobObject):
+    return userObject.getUuid() in jobObject.crew['Admins']

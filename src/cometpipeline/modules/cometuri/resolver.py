@@ -86,34 +86,10 @@ def uri_to_object(uri):
     if not packageObject:
         return None
 
-    versions = packageObject.children()
+    versionObject = packageObject.latest(version=None if not 'v' in fields else fields['v'])
 
-    if not versions:
+    if not versionObject:
         return None
-
-    versions.sort("version", reverse=True)
-
-    versionObject = versions[0]
-
-    if 'v' in fields:
-        versionToken = fields['v']
-
-        if versionToken.isdigit():
-            for version in versions:
-                if version.get("version") == versionToken:
-                    versionObject = version
-        elif versionToken == "approved":
-            for version in versions:
-                if version.get("status") == "approved":
-                    versionObject = version
-        elif versionToken == "declined":
-            for version in versions:
-                if version.get("status") == "declined":
-                    versionObject = version
-        elif versionToken == "pending":
-            for version in versions:
-                if version.get("status") == "pending":
-                    versionObject = version
 
     if 'c' in fields:
         contents = versionObject.children()
