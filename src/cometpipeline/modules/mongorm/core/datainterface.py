@@ -3,6 +3,7 @@ import os.path
 from mongorm import interfaces
 from mongorm.core.datacontainer import DataContainer
 from mongoengine.errors import MultipleObjectsReturned
+from mongorm import util as mgutil
 import cometpublish
 import datetime
 import re
@@ -71,18 +72,36 @@ class DataInterface(object):
         obj._generate_id()
         obj.created = datetime.datetime.now()
         obj.modified = obj.created
+
+        parent = obj.parent()
+
+        if hasattr(obj, "created_by"):
+            obj.created_by = mgutil.getCurrentUser().getUuid()
+
+        if self._db_name == "version":
+            obj.label = "{}_v{}".format(parent.label, obj.version)
+        elif self._db_name == "package":
+            prefix = "{}_{}".format(obj.type, parent.label)
+            if obj.label:
+                if prefix in obj.label:
+                    raise RuntimeError("The prefix {} should not be in the label for package object".format(prefix))
+                label = "{}_{}".format(prefix, obj.label)
+                obj.label = label
+            else:
+                obj.label = prefix
+
         if not obj.path:
             if self._db_name == "job":
                 obj.path = os.path.join("/", obj.label)
             elif self._db_name == "entity":
                 obj.path = os.path.join("/", obj.job, obj.label)
             elif self._db_name == "package":
-                obj.path = cometpublish.util.packageTargetPath(obj.parent(), obj.type, obj.label)
+                obj.path = cometpublish.util.packageTargetPath(parent, obj.type, obj.label)
             elif self._db_name == "version":
-                obj.path = os.path.join(obj.parent().rel_path(), obj.label)
+                obj.path = os.path.join(parent.rel_path(), obj.label)
             elif self._db_name == "content":
                 # TODO: what's going to happen if we have a "#" in there for file sequences?
-                obj.path = os.path.join(obj.parent().rel_path(), "{}.{}".format(obj.label, obj.format))
+                obj.path = os.path.join(parent.rel_path(), "{}.{}".format(obj.label, obj.format))
 
         return obj
 

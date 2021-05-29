@@ -2,6 +2,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 from cometqt.widgets.ui_user_avatar import AvatarLabel
 from cometqt.widgets.ui_animated_popup_message import AnimatedPopupMessage
 from pipeicon import icon_paths
+import username_generator
 from cometqt import util
 import mongorm
 import datetime
@@ -101,6 +102,7 @@ class IntialForm(QtWidgets.QWidget):
         self.lastname_line = ValidationLineEdit("Last Name", self)
         self.email_line = ValidationLineEdit("Email", self)
         self.username_line = ValidationLineEdit("Username", self)
+        self.username_line.setReadOnly(True)
         self.password_line = ValidationLineEdit("Password", self)
         self.confirmpass_line = ValidationLineEdit("Confirm Password", self)
         self.start_button = QtWidgets.QPushButton("START")
@@ -175,6 +177,8 @@ class IntialForm(QtWidgets.QWidget):
             }
         """)
 
+        self.firstname_line.editingFinished.connect(self.create_username)
+        self.lastname_line.editingFinished.connect(self.create_username)
         self.start_button.clicked.connect(self.initial_filled)
 
     def initial_filled(self):
@@ -191,6 +195,13 @@ class IntialForm(QtWidgets.QWidget):
         else:
             self.user_exists_widget.hide()
             self.parent().setCurrentIndex(1)
+
+    def create_username(self):
+        try:
+            username = username_generator.generate_username(self.firstname_line.text(), self.lastname_line.text())
+        except ValueError:
+            username = ""
+        self.username_line.setText(username)
 
 
 class AvatarForm(QtWidgets.QWidget):

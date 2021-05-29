@@ -156,8 +156,7 @@ class UiLoginForm(QtWidgets.QFrame):
     def writeSettings(self, dataObject):
         self.settings.beginGroup("login")
         self.settings.setValue("remember_user", "true" if self.remember_check.isChecked() else "false")
-        self.settings.setValue("username", dataObject.get("username"))
-        self.settings.setValue("email", dataObject.get("email"))
+        self.settings.setValue("current_user", dataObject.getUuid())
         self.settings.setValue("password", dataObject.get("password"))
         self.settings.endGroup()
 
@@ -165,19 +164,15 @@ class UiLoginForm(QtWidgets.QFrame):
         if not self.settings.value("login/remember_user") == "true":
             return False
 
-        if not self.settings.value("login/username") and self.settings.value("login/password"):
+        if not self.settings.value("login/current_user") or not self.settings.value("login/password"):
             return False
 
         handler = mongorm.getHandler()
-        filter = mongorm.getFilter()
-        filter.search(handler['user'], username=self.settings.value("login/username"))
-        user_object = handler['user'].one(filter)
+        user_object = handler['user'].get(self.settings.value("login/current_user"))
 
-        if not user_object:
+        if not user_object or (user_object and not user_object.get("password") == self.settings.value("login/password")):
             return False
 
-        if not user_object.get("email") == self.settings.value("login/email"):
-            return False
         return self.valid_login(user_object)
 
     def valid_login(self, dataObject):

@@ -515,7 +515,6 @@ class CreateProjectWindow(QtWidgets.QDialog):
             job=jobObject.job,
             type='util',
             parent_uuid=None,
-            created_by=currentUser.uuid,
         )
         rootEntityObject.save()
         cometpublish.build_entity_directory(rootEntityObject)
@@ -527,23 +526,19 @@ class CreateProjectWindow(QtWidgets.QDialog):
         ocioConfig = initialForm['jobOcioConfig']['config']
 
         ocioPackageObject = handler['package'].create(
-            label='ocio_root',
             type="ocio",
             parent_uuid=rootEntityObject.getUuid(),
-            job=jobObject.job,
-            created_by=mgutil.getCurrentUser().getUuid()
+            job=jobObject.job
         )
         ocioPackageObject.save()
         cometpublish.build_package_directory(ocioPackageObject)
 
         ocioVersion001Object = handler['version'].create(
-            label='ocio_root_v1',
             version=1,
             status='approved',
             comment='Automatically generated publish from job create.',
             parent_uuid=ocioPackageObject.getUuid(),
-            job=jobObject.job,
-            created_by=mgutil.getCurrentUser().getUuid()
+            job=jobObject.job
         )
         ocioVersion001Object.save()
         cometpublish.build_version_directory(ocioVersion001Object)

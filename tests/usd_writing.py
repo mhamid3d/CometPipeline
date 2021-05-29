@@ -1,22 +1,43 @@
-from pxr import Usd, UsdGeom
+from pxr import Usd, Sdf, Kind
 
 WS = "/home/mhamid/Documents/usd_writing/{}"
 
 
-assetUsd = Usd.Stage.CreateNew(WS.format("asset.usda"))
-asmbPrim = assetUsd.DefinePrim("/walkman_all", "Xform")
-cmptPrim = assetUsd.DefinePrim("/walkman_all/walkman", "Xform")
-asmbPrim.SetMetadata('kind', 'assembly')
-cmptPrim.SetMetadata('kind', 'component')
+shotUsd = Usd.Stage.CreateNew(WS.format("shot.usda"))
+rootPrim = shotUsd.DefinePrim("/", "Xform")
+shotUsd.SetDefaultPrim(rootPrim)
+shotUsd.SetStartTimeCode(1001)
+shotUsd.SetEndTimeCode(1101)
+shotUsd.GetRootLayer().Save()
 
-assetUsd.SetDefaultPrim(asmbPrim)
+manifestUsd = Usd.Stage.CreateNew(WS.format("manifest.usda"))
 
-definitionUsd = Usd.Stage.CreateNew(WS.format("definition.usda"))
-lodPrim = definitionUsd.DefinePrim("/walkman_all/walkman/lod_hi", "Xform")
-lodPrim.GetReferences().AddReference('/jobs/DELOREAN/assets/prop/walkman/_publish/MODEL/MODEL_prop_walkman_varA_lod300/MODEL_prop_walkman_varA_lod300_v014/cache.abc')
+world = manifestUsd.DefinePrim("/world", "Xform")
+cam = manifestUsd.DefinePrim("/world/cam", "Xform")
+geo = manifestUsd.DefinePrim("/world/geo", "Xform")
+lgt = manifestUsd.DefinePrim("/world/lgt", "Xform")
+gaffer = manifestUsd.DefinePrim("/world/lgt/gaffer", "Xform")
 
-definitionUsd.GetRootLayer().Save()
+for grp in [world, cam, geo]:
+    m = Usd.ModelAPI(grp)
+    m.SetKind(Kind.Tokens.group)
 
-asmbPrim.GetReferences().AddReference(WS.format("definition.usda"))
 
-assetUsd.GetRootLayer().Save()
+camAsmb = manifestUsd.DefinePrim("/world/cam/renderCam", "Xform")
+camCmpt = manifestUsd.DefinePrim("/world/cam/renderCam/renderCam_main", "Xform")
+camShape = manifestUsd.DefinePrim("/world/cam/renderCam/renderCam_main/renderCam_mainShape", "Camera")
+
+charAsmb = manifestUsd.DefinePrim("/world/geo/char_master", "Xform")
+propAsmb = manifestUsd.DefinePrim("/world/geo/prop_master", "Xform")
+fxAsmb = manifestUsd.DefinePrim("/world/geo/fx_master", "Xform")
+envAsmb = manifestUsd.DefinePrim("/world/geo/env_master", "Xform")
+
+for cmpt in [camCmpt]:
+    m = Usd.ModelAPI(cmpt)
+    m.SetKind(Kind.Tokens.component)
+
+for asmb in [charAsmb, propAsmb, fxAsmb, envAsmb, camAsmb]:
+    m = Usd.ModelAPI(asmb)
+    m.SetKind(Kind.Tokens.assembly)
+
+manifestUsd.GetRootLayer().Save()

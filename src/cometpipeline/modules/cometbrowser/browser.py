@@ -47,15 +47,15 @@ class ProjectBrowserMain(BaseMainWindow):
 
     def setCurrentJob(self, jobObject):
         if jobObject:
-            crews = [v for k, v in jobObject.crew.items()]
-            crewMembers = set([uid for crewTypeList in crews for uid in crewTypeList])
-            if not self._currentUser.getUuid() in crewMembers:
-                # TODO: need a more global solution for this, this is kind of ridiculous
-                LOGGER.error("Insufficient permissions to access this job: {}".format(jobObject.label))
-                self.setCurrentJob(None)
-                return
-            else:
-                os.environ['SHOW'] = jobObject.get("label")
+            # crews = [v for k, v in jobObject.crew.items()]
+            # crewMembers = set([uid for crewTypeList in crews for uid in crewTypeList])
+            # if not self._currentUser.getUuid() in crewMembers:
+            #     # TODO: need a more global solution for this, this is kind of ridiculous
+            #     LOGGER.error("Insufficient permissions to access this job: {}".format(jobObject.label))
+            #     self.setCurrentJob(None)
+            #     return
+            # else:
+            os.environ['SHOW'] = jobObject.get("label")
 
         self._currentJob = jobObject
 

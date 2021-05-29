@@ -33,7 +33,7 @@ class VersionComboBox(QtWidgets.QComboBox):
             if self._versionsContainer:
                 self._versionsContainer.sort(sort_field="version", reverse=True)
             for version in self._versionsContainer:
-                self.addItem(QtGui.QIcon(icon_paths.ICON_VERSION_LRG), "v {}".format(str(version.get("version")).zfill(3)))
+                self.addItem(QtGui.QIcon(icon_paths.ICON_VERSION_LRG), "v {}".format(str(version.get("version"))))
 
             self.setCurrentIndex(0)
 
@@ -106,12 +106,10 @@ class VersionPublisher(QtWidgets.QDialog):
         self.setup_ui()
         self._validation_dialog = None
         self._post_process = None
+        self.publishButton.setDisabled(True)
         self.validationDialog = validationDialog
         self.postProcess = postProcess
         self.resize(500, 800)
-
-        if not self.postProcess:
-            self.publishButton.setDisabled(True)
 
     @property
     def packageType(self):
@@ -147,7 +145,7 @@ class VersionPublisher(QtWidgets.QDialog):
     @property
     def packagePublishName(self):
         packageType = self.packageType[0] or "[packageType]"
-        entity = self.entityComboBox.getSelectedEntity().publishName() if self.entityComboBox.getSelectedEntity() else "[entity]"
+        entity = self.entityComboBox.getSelectedEntity().get("label") if self.entityComboBox.getSelectedEntity() else "[entity]"
 
         labelStr = "_".join([packageType, entity])
 
@@ -161,7 +159,7 @@ class VersionPublisher(QtWidgets.QDialog):
 
     @property
     def versionPublishName(self):
-        version = "v{}".format(str(self.versionComboBox.getSelectedVersion()).zfill(3)) or "[version]"
+        version = "v{}".format(str(self.versionComboBox.getSelectedVersion())) or "[version]"
         return "_".join([self.packagePublishName, version])
 
     @property
@@ -324,7 +322,7 @@ class VersionPublisher(QtWidgets.QDialog):
         # Add the name fields to the data dictionary and add the widgets
         for nameField, nfData in self.packageTypeNameFields.items():
             widgetStr = nfData['widget']
-            widget = getattr(QtWidgets, widgetStr)()
+            widget = getattr(QtWidgets, widgetStr)(parent=self)
             widget.setFixedHeight(32)
             if 'editable' in nfData:
                 widget.setEditable(nfData['editable'])
@@ -616,9 +614,9 @@ class ValidationDialog(QtWidgets.QDialog):
         return self._isValid
 
     def installValidator(self, name=None, result=False, errorMsg=None, description=None, validator=None, fixer=None):
-        assert(name, "A name for the validator is required")
-        assert(description, "A description for the validtor is required")
-        assert(validator, "A validator function for the validator is required")
+        assert name, "A name for the validator is required"
+        assert description, "A description for the validtor is required"
+        assert validator, "A validator function for the validator is required"
 
         treeItem = QtWidgets.QTreeWidgetItem(self.validationTree)
         treeItem.setText(0, name)
@@ -639,16 +637,16 @@ class ValidationDialog(QtWidgets.QDialog):
 
         fields = ['result', 'treeItem', 'errorMsg', 'description', 'validator', 'fixer']
 
-        assert(name, "Please provide a valid name for the validator")
-        assert(name in self._validatorMap, "Validator {} does not exist. Please install it first.".format(name))
-        assert(field in fields, "Invalid field for validator: {}".format(name))
+        assert name, "Please provide a valid name for the validator"
+        assert name in self._validatorMap, "Validator {} does not exist. Please install it first.".format(name)
+        assert field in fields, "Invalid field for validator: {}".format(name)
 
         if field == "result":
-            assert(isinstance(value, bool))
+            assert isinstance(value, bool)
         elif field == "treeItem":
-            assert(isinstance(value, QtWidgets.QTreeWidgetItem))
+            assert isinstance(value, QtWidgets.QTreeWidgetItem)
         elif field == "validator" or field == "fixer":
-            assert(callable(value))
+            assert callable(value)
 
         data = self._validatorMap[name]
         data[field] = value
@@ -661,6 +659,6 @@ if __name__ == '__main__':
     import mongorm
     app = QtWidgets.QApplication(sys.argv)
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
-    win = ValidationDialog()
+    win = VersionPublisher()
     win.show()
     sys.exit(app.exec_())

@@ -10,6 +10,7 @@ class EntityPickerMenu(QtWidgets.QMenu):
         self.mainLayout = QtWidgets.QVBoxLayout()
         self.setLayout(self.mainLayout)
         self.entityViewer = EntityViewer(parent=self)
+        self.entityViewer.setFromEnvironment()
         self.entityViewer.jobSelectWidget.show()
         self.mainLayout.addWidget(self.entityViewer)
 
@@ -76,7 +77,7 @@ class EntityComboBox(QtWidgets.QPushButton):
         self._selectedEntity = entityObject
 
         if entityObject:
-            text = entityObject.publishName()
+            text = entityObject.get("label")
             icon = iconutil.dataObjectToIcon(entityObject)
         else:
             text = self.defaultText

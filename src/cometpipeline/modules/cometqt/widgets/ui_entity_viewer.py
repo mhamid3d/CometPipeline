@@ -638,7 +638,7 @@ class EntityViewer(QtWidgets.QWidget):
             return
 
         filt.clear()
-        filt.search(handler['entity'], type__ne='asset', label=shot, job=show)
+        filt.search(handler['entity'], label=shot, job=show)
 
         shotObject = handler['entity'].one(filt)
         if shotObject:
@@ -658,6 +658,13 @@ class EntityPickerDialog(QtWidgets.QDialog):
 
         self.diagButtonBox = QtWidgets.QDialogButtonBox()
         self.diagButtonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        for btn in self.diagButtonBox.buttons():
+            btn.setStyleSheet("""
+                QPushButton{
+                    border-radius: 0px;
+                    padding: 9px;
+                }
+            """)
 
         if singleSelection:
             self.entityViewer.entityTree.setSelectionMode(QtWidgets.QTreeView.SingleSelection)
@@ -679,8 +686,8 @@ if __name__ == '__main__':
     import qdarkstyle
 
     app = QtWidgets.QApplication(sys.argv)
-    win = EntityViewer()
-    win.setFromEnvironment()
+    win = EntityPickerDialog()
+    # win.setFromEnvironment()
     win.resize(400, 800)
     win.setStyleSheet(qdarkstyle.load_stylesheet_pyside2())
     win.show()

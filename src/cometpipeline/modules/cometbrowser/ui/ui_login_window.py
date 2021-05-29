@@ -134,18 +134,10 @@ class UiLoginPopup(QtWidgets.QStackedWidget):
             widget.deleteLater()
         self.anim = QtCore.QPropertyAnimation(self, b"geometry")
         self.anim.setDuration(200)
-        self.anim.setStartValue(QtCore.QRect(
-            350,
-            75,
-            400,
-            550))
+        self.anim.setStartValue(QtCore.QRect(350, 75, 400, 550))
         self.setMinimumHeight(200)
         self.setMaximumHeight(550)
-        self.anim.setEndValue(QtCore.QRect(
-            350,
-            250,
-            400,
-            200))
+        self.anim.setEndValue(QtCore.QRect(350, 250, 400, 200))
 
         def anim_finished():
             self.setFixedSize(self.anim.endValue().width(), self.anim.endValue().height())
